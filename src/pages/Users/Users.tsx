@@ -1,18 +1,84 @@
-import { useGetUsersQuery } from '../../features/user/userApi';
+import { useState } from 'react';
+import UserModal from '../../components/user/UserModal';
+import { useGetRolesQuery } from '../../features/role/roleApi';
+import {
+  useCreateUserMutation,
+  useGetUsersQuery,
+} from '../../features/user/userApi';
 
 const Users = () => {
+  const [openModal, setOpenModal] = useState(false);
+
+  const [isEdit, setIsEdit] = useState(false);
+
+  const [name, setName] = useState('');
+
+  const [email, setEmail] = useState('');
+
+  const [password, setPassword] = useState('');
+
+  const [roleId, setRoleId] = useState('');
+
+  const [phone, setPhone] = useState('');
+
+  const [gender, setGender] = useState('');
+
+  const [active, setActive] = useState(true);
   const { data, isLoading, error } = useGetUsersQuery();
 
-  if (isLoading) return <h2>Loading...</h2>;
+  const { data: rolesData } = useGetRolesQuery();
 
+  const [createUser, { isLoading: isCreating }] = useCreateUserMutation();
+
+  if (isLoading) return <h2>Loading...</h2>;
   if (error) return <h2>Something went wrong.</h2>;
+
+  const handleCreate = async () => {
+    if (!name || !email || !password || !roleId) return;
+
+    try {
+      await createUser({
+        name,
+        email,
+        password,
+        roleId,
+      }).unwrap();
+
+      setOpenModal(false);
+
+      setName('');
+      setEmail('');
+      setPassword('');
+      setRoleId('');
+      setPhone('');
+      setGender('');
+      setActive(true);
+    } catch (error) {
+      console.error(error);
+    }
+  };
 
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-3xl font-bold">Users</h1>
 
-        <button className="rounded bg-blue-600 px-4 py-2 text-white">
+        <button
+          onClick={() => {
+            setIsEdit(false);
+
+            setName('');
+            setEmail('');
+            setPassword('');
+            setRoleId('');
+            setPhone('');
+            setGender('');
+            setActive(true);
+
+            setOpenModal(true);
+          }}
+          className="cursor-pointer rounded bg-blue-600 px-4 py-2 text-white"
+        >
           Create User
         </button>
       </div>
@@ -52,6 +118,29 @@ const Users = () => {
           ))}
         </tbody>
       </table>
+
+      <UserModal
+        open={openModal}
+        isEdit={isEdit}
+        name={name}
+        setName={setName}
+        email={email}
+        setEmail={setEmail}
+        password={password}
+        setPassword={setPassword}
+        roleId={roleId}
+        setRoleId={setRoleId}
+        phone={phone}
+        setPhone={setPhone}
+        gender={gender}
+        setGender={setGender}
+        active={active}
+        setActive={setActive}
+        roles={rolesData?.data.items ?? []}
+        isLoading={isCreating}
+        onClose={() => setOpenModal(false)}
+        onSave={handleCreate}
+      />
     </div>
   );
 };
