@@ -61,6 +61,7 @@ const RoleModal = ({
         <h2 className="mb-6 text-2xl font-bold">Role</h2>
 
         <input
+          readOnly
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Role Name"

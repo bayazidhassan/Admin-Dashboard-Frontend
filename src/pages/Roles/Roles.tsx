@@ -4,26 +4,25 @@ import { useGetPermissionGroupsQuery } from '../../features/permission/permissio
 import {
   useCreateRoleMutation,
   useGetRolesQuery,
+  useUpdateRoleMutation,
+  type Role,
 } from '../../features/role/roleApi';
 
 const Roles = () => {
   const [openModal, setOpenModal] = useState(false);
-
   const [name, setName] = useState('');
-
   const [description, setDescription] = useState('');
-
   const [status, setStatus] = useState(true);
-
   const [permissionIds, setPermissionIds] = useState<string[]>([]);
+  const [selectedRole, setSelectedRole] = useState<Role | null>(null);
+  const [isEdit, setIsEdit] = useState(false);
+
   const { data, isLoading, error } = useGetRolesQuery();
-
   const { data: permissionData } = useGetPermissionGroupsQuery();
-
   const [createRole, { isLoading: isCreating }] = useCreateRoleMutation();
+  const [updateRole, { isLoading: isUpdating }] = useUpdateRoleMutation();
 
   if (isLoading) return <h2>Loading...</h2>;
-
   if (error) return <h2>Something went wrong.</h2>;
 
   const handleCreate = async () => {
@@ -53,13 +52,70 @@ const Roles = () => {
     }
   };
 
+  const handleEdit = (role: Role) => {
+    setSelectedRole(role);
+
+    setName(role.name);
+    setDescription(role.description);
+    setStatus(role.status);
+
+    setPermissionIds(role.permissions.map((p) => p.id));
+
+    setIsEdit(true);
+    setOpenModal(true);
+  };
+
+  const handleUpdate = async () => {
+    if (!selectedRole) return;
+
+    const currentPermissionIds = selectedRole.permissions.map((p) => p.id);
+
+    const addPermissionIds = permissionIds.filter(
+      (id) => !currentPermissionIds.includes(id),
+    );
+
+    const removePermissionIds = currentPermissionIds.filter(
+      (id) => !permissionIds.includes(id),
+    );
+
+    try {
+      await updateRole({
+        id: selectedRole.id,
+        description,
+        addPermissionIds,
+        removePermissionIds,
+      }).unwrap();
+
+      setOpenModal(false);
+      setSelectedRole(null);
+      setIsEdit(false);
+
+      setName('');
+      setDescription('');
+      setStatus(true);
+      setPermissionIds([]);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
   return (
     <div>
       <h1 className="mb-6 text-3xl font-bold">Roles</h1>
 
       <div className="mb-6">
         <button
-          onClick={() => setOpenModal(true)}
+          onClick={() => {
+            setIsEdit(false);
+            setSelectedRole(null);
+
+            setName('');
+            setDescription('');
+            setStatus(true);
+            setPermissionIds([]);
+
+            setOpenModal(true);
+          }}
           className="rounded bg-blue-600 px-4 py-2 text-white"
         >
           Create Role
@@ -91,7 +147,18 @@ const Roles = () => {
 
               <td className="p-3">{role._count.users}</td>
 
-              <td className="p-3">Edit | Delete</td>
+              <td className="p-3 space-x-2">
+                <button
+                  onClick={() => handleEdit(role)}
+                  className="rounded bg-yellow-500 px-3 py-1 text-white"
+                >
+                  Edit
+                </button>
+
+                <button className="rounded bg-red-500 px-3 py-1 text-white">
+                  Delete
+                </button>
+              </td>
             </tr>
           ))}
         </tbody>
@@ -108,9 +175,9 @@ const Roles = () => {
         permissionIds={permissionIds}
         setPermissionIds={setPermissionIds}
         permissionGroups={permissionData?.data.items ?? []}
-        isLoading={isCreating}
         onClose={() => setOpenModal(false)}
-        onSave={handleCreate}
+        isLoading={isEdit ? isUpdating : isCreating}
+        onSave={isEdit ? handleUpdate : handleCreate}
       />
     </div>
   );
