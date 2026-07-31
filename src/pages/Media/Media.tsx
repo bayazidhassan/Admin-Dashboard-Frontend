@@ -1,11 +1,35 @@
 import { useState } from 'react';
 import UploadMediaModal from '../../components/media/UploadMediaModal';
-import { useGetMediaQuery } from '../../features/media/mediaApi';
+import {
+  useDeleteMediaMutation,
+  useGetMediaQuery,
+} from '../../features/media/mediaApi';
 import { getMediaUrl } from '../../lib/media';
 
 const Media = () => {
   const { data, isLoading, error } = useGetMediaQuery();
   const [openUploadModal, setOpenUploadModal] = useState(false);
+  const [deleteMedia, { isLoading: isDeleting }] = useDeleteMediaMutation();
+
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const handleDelete = async (id: string) => {
+    const confirmed = window.confirm(
+      'Are you sure you want to delete this media?',
+    );
+
+    if (!confirmed) return;
+
+    try {
+      setDeletingId(id);
+
+      await deleteMedia(id).unwrap();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   if (isLoading) return <h2>Loading...</h2>;
 
@@ -55,8 +79,14 @@ const Media = () => {
                   Edit
                 </button>
 
-                <button className="cursor-pointer rounded bg-red-500 px-3 py-1 text-white">
-                  Delete
+                <button
+                  onClick={() => handleDelete(media.id)}
+                  disabled={isDeleting && deletingId === media.id}
+                  className="cursor-pointer rounded bg-red-500 px-3 py-1 text-white disabled:opacity-50"
+                >
+                  {isDeleting && deletingId === media.id
+                    ? 'Deleting...'
+                    : 'Delete'}
                 </button>
               </div>
             </div>
