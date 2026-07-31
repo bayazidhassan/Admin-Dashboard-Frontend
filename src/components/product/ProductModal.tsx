@@ -120,7 +120,7 @@ const ProductModal = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="max-h-[90vh] w-[800px] overflow-y-auto rounded bg-white p-6">
+      <div className="max-h-[90vh] w-200 overflow-y-auto rounded bg-white p-6">
         <h2 className="mb-6 text-2xl font-bold">
           {isEdit ? 'Edit Product' : 'Create Product'}
         </h2>
