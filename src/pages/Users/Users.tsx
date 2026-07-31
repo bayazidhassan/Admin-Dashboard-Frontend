@@ -3,6 +3,7 @@ import UserModal from '../../components/user/UserModal';
 import { useGetRolesQuery } from '../../features/role/roleApi';
 import {
   useCreateUserMutation,
+  useDeleteUserMutation,
   useGetUsersQuery,
   useUpdateUserMutation,
   type User,
@@ -24,6 +25,8 @@ const Users = () => {
   const { data: rolesData } = useGetRolesQuery();
   const [createUser, { isLoading: isCreating }] = useCreateUserMutation();
   const [updateUser, { isLoading: isUpdating }] = useUpdateUserMutation();
+  const [deleteUser] = useDeleteUserMutation();
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   if (isLoading) return <h2>Loading...</h2>;
   if (error) return <h2>Something went wrong.</h2>;
@@ -90,6 +93,22 @@ const Users = () => {
     }
   };
 
+  const handleDelete = async (id: string) => {
+    const ok = confirm('Delete this user?');
+
+    if (!ok) return;
+
+    setDeletingId(id);
+
+    try {
+      await deleteUser(id).unwrap();
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
@@ -146,8 +165,12 @@ const Users = () => {
                   Edit
                 </button>
 
-                <button className="rounded bg-red-500 px-3 py-1 text-white">
-                  Delete
+                <button
+                  onClick={() => handleDelete(user.id)}
+                  disabled={deletingId === user.id}
+                  className="cursor-pointer rounded bg-red-500 px-3 py-1 text-white disabled:opacity-50"
+                >
+                  {deletingId === user.id ? 'Deleting...' : 'Delete'}
                 </button>
               </td>
             </tr>
