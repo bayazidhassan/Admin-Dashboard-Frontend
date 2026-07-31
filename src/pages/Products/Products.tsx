@@ -2,7 +2,10 @@ import { useState } from 'react';
 import ProductModal from '../../components/product/ProductModal';
 import { useGetBrandsQuery } from '../../features/brand/brandApi';
 import { useGetCategoriesQuery } from '../../features/category/categoryApi';
-import { useGetProductsQuery } from '../../features/product/productApi';
+import {
+  useCreateProductMutation,
+  useGetProductsQuery,
+} from '../../features/product/productApi';
 
 const Product = () => {
   const { data, isLoading, error } = useGetProductsQuery();
@@ -25,6 +28,48 @@ const Product = () => {
 
   const { data: brandsData } = useGetBrandsQuery();
   const { data: categoriesData } = useGetCategoriesQuery();
+
+  const [createProduct, { isLoading: isCreating }] = useCreateProductMutation();
+
+  const handleCreateProduct = async () => {
+    try {
+      await createProduct({
+        name,
+        slug,
+        sku,
+        shortDescription,
+        longDescription,
+        price,
+        salePrice,
+        stock,
+        weight,
+        active,
+        featured,
+        sortOrder,
+        brandId: brandId || undefined,
+        categoryIds,
+      }).unwrap();
+
+      setOpenModal(false);
+
+      setName('');
+      setSlug('');
+      setSku('');
+      setShortDescription('');
+      setLongDescription('');
+      setPrice(0);
+      setSalePrice(0);
+      setStock(0);
+      setWeight(0);
+      setActive(true);
+      setFeatured(false);
+      setSortOrder(0);
+      setBrandId('');
+      setCategoryIds([]);
+    } catch (error) {
+      console.log(error);
+    }
+  };
 
   if (isLoading) return <h2>Loading...</h2>;
 
@@ -121,10 +166,10 @@ const Product = () => {
         setCategoryIds={setCategoryIds}
         brands={brandsData?.data.items ?? []}
         categories={categoriesData?.data.items ?? []}
-        isLoading={false}
+        isLoading={isCreating}
         isEdit={false}
         onClose={() => setOpenModal(false)}
-        onSave={() => {}}
+        onSave={handleCreateProduct}
       />
     </div>
   );
