@@ -12,6 +12,7 @@ export const baseApi = createApi({
     'Brand',
     'Attribute',
     'Media',
+    'Product',
   ],
 
   baseQuery: fetchBaseQuery({

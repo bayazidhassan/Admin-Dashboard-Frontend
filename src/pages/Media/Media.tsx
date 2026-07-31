@@ -123,6 +123,8 @@ const Media = () => {
         onClose={() => {
           setOpenEditModal(false);
           setSelectedMedia(null);
+          setTitle('');
+          setAltText('');
         }}
       />
     </div>
