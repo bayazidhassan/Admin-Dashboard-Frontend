@@ -152,7 +152,7 @@ const ProductModal = ({
 
           <input
             type="number"
-            value={price}
+            value={price || ''}
             onChange={(e) => setPrice(Number(e.target.value))}
             placeholder="Price"
             className="rounded border p-2"
@@ -160,7 +160,7 @@ const ProductModal = ({
 
           <input
             type="number"
-            value={salePrice}
+            value={salePrice || ''}
             onChange={(e) => setSalePrice(Number(e.target.value))}
             placeholder="Sale Price"
             className="rounded border p-2"
@@ -168,7 +168,7 @@ const ProductModal = ({
 
           <input
             type="number"
-            value={stock}
+            value={stock || ''}
             onChange={(e) => setStock(Number(e.target.value))}
             placeholder="Stock"
             className="rounded border p-2"
@@ -176,7 +176,7 @@ const ProductModal = ({
 
           <input
             type="number"
-            value={weight}
+            value={weight || ''}
             onChange={(e) => setWeight(Number(e.target.value))}
             placeholder="Weight"
             className="rounded border p-2"
@@ -184,7 +184,7 @@ const ProductModal = ({
 
           <input
             type="number"
-            value={sortOrder}
+            value={sortOrder || ''}
             onChange={(e) => setSortOrder(Number(e.target.value))}
             placeholder="Sort Order"
             className="rounded border p-2"
