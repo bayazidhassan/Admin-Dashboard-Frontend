@@ -1,4 +1,4 @@
-import type { PermissionGroup } from '../features/permission/permissionApi';
+import type { PermissionGroup } from '../../features/permission/permissionApi';
 
 interface Props {
   open: boolean;

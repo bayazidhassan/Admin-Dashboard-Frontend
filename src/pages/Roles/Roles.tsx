@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import RoleModal from '../../components/RoleModal';
+import RoleModal from '../../components/role/RoleModal';
 import { useGetPermissionGroupsQuery } from '../../features/permission/permissionApi';
 import {
   useCreateRoleMutation,
