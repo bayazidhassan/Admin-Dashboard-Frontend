@@ -19,6 +19,7 @@ const Attributes = () => {
   const [slug, setSlug] = useState('');
   const [type, setType] = useState<AttributeType>('dropdown');
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [openValuesModal, setOpenValuesModal] = useState(false);
 
   const { data, isLoading, error } = useGetAttributesQuery();
 
@@ -93,6 +94,12 @@ const Attributes = () => {
     }
   };
 
+  const handleManageValues = (attribute: Attribute) => {
+    setSelectedAttribute(attribute);
+
+    setOpenValuesModal(true);
+  };
+
   if (isLoading) return <h2>Loading...</h2>;
 
   if (error) return <h2>Something went wrong.</h2>;
@@ -142,7 +149,10 @@ const Attributes = () => {
               <td className="p-3">{attribute._count.values}</td>
 
               <td className="space-x-2 p-3">
-                <button className="cursor-pointer rounded bg-indigo-600 px-3 py-1 text-white">
+                <button
+                  onClick={() => handleManageValues(attribute)}
+                  className="cursor-pointer rounded bg-indigo-600 px-3 py-1 text-white"
+                >
                   Manage Values
                 </button>
 
