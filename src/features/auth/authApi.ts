@@ -40,7 +40,6 @@ export const authApi = baseApi.injectEndpoints({
         url: '/auth/session',
         method: 'GET',
       }),
-      providesTags: ['Session'],
     }),
 
     logout: builder.mutation<{ success: boolean; message: string }, void>({
@@ -48,9 +47,13 @@ export const authApi = baseApi.injectEndpoints({
         url: '/auth/logout',
         method: 'POST',
       }),
-      invalidatesTags: ['Session'],
     }),
   }),
 });
 
-export const { useLoginMutation, useSessionQuery, useLogoutMutation } = authApi;
+export const {
+  useLoginMutation,
+  useLazySessionQuery,
+  useSessionQuery,
+  useLogoutMutation,
+} = authApi;

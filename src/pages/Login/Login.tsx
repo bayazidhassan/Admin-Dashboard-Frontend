@@ -2,14 +2,18 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { useAppDispatch } from '../../app/hooks';
-import { useLoginMutation } from '../../features/auth/authApi';
-import { setCredentials } from '../../features/auth/authSlice';
+import {
+  useLazySessionQuery,
+  useLoginMutation,
+} from '../../features/auth/authApi';
+import { setCredentials, setUser } from '../../features/auth/authSlice';
 
 const Login = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
 
   const [login, { isLoading }] = useLoginMutation();
+  const [getSession] = useLazySessionQuery();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -18,16 +22,20 @@ const Login = () => {
     e.preventDefault();
 
     try {
-      const res = await login({
+      const loginRes = await login({
         email,
         password,
       }).unwrap();
 
       dispatch(
         setCredentials({
-          accessToken: res.data.accessToken,
+          accessToken: loginRes.data.accessToken,
         }),
       );
+
+      const sessionRes = await getSession().unwrap();
+
+      dispatch(setUser(sessionRes.data));
 
       navigate('/');
     } catch (err) {
