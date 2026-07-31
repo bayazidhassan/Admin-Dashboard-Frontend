@@ -1,8 +1,10 @@
 import { useState } from 'react';
+import EditMediaModal from '../../components/media/EditMediaModal';
 import UploadMediaModal from '../../components/media/UploadMediaModal';
 import {
   useDeleteMediaMutation,
   useGetMediaQuery,
+  type Media,
 } from '../../features/media/mediaApi';
 import { getMediaUrl } from '../../lib/media';
 
@@ -10,6 +12,10 @@ const Media = () => {
   const { data, isLoading, error } = useGetMediaQuery();
   const [openUploadModal, setOpenUploadModal] = useState(false);
   const [deleteMedia, { isLoading: isDeleting }] = useDeleteMediaMutation();
+  const [selectedMedia, setSelectedMedia] = useState<Media | null>(null);
+  const [openEditModal, setOpenEditModal] = useState(false);
+  const [title, setTitle] = useState('');
+  const [altText, setAltText] = useState('');
 
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
@@ -75,7 +81,15 @@ const Media = () => {
               </p>
 
               <div className="flex gap-2">
-                <button className="cursor-pointer rounded bg-blue-500 px-3 py-1 text-white">
+                <button
+                  onClick={() => {
+                    setSelectedMedia(media);
+                    setTitle(media.title ?? '');
+                    setAltText(media.altText ?? '');
+                    setOpenEditModal(true);
+                  }}
+                  className="cursor-pointer rounded bg-blue-500 px-3 py-1 text-white"
+                >
                   Edit
                 </button>
 
@@ -97,6 +111,19 @@ const Media = () => {
       <UploadMediaModal
         open={openUploadModal}
         onClose={() => setOpenUploadModal(false)}
+      />
+
+      <EditMediaModal
+        open={openEditModal}
+        media={selectedMedia}
+        title={title}
+        setTitle={setTitle}
+        altText={altText}
+        setAltText={setAltText}
+        onClose={() => {
+          setOpenEditModal(false);
+          setSelectedMedia(null);
+        }}
       />
     </div>
   );
