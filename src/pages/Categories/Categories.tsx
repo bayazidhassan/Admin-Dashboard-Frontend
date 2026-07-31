@@ -2,8 +2,11 @@ import { useState } from 'react';
 import CategoryModal from '../../components/category/CategoryModal';
 import {
   useCreateCategoryMutation,
+  useDeleteCategoryMutation,
   useGetCategoriesQuery,
   useGetCategoryTreeQuery,
+  useUpdateCategoryMutation,
+  type Category,
 } from '../../features/category/categoryApi';
 
 const Categories = () => {
@@ -16,12 +19,23 @@ const Categories = () => {
   const [parentId, setParentId] = useState('');
   const [active, setActive] = useState(true);
   const [sortOrder, setSortOrder] = useState(1);
+  const [selectedCategory, setSelectedCategory] = useState<Category | null>(
+    null,
+  );
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const { data, isLoading, error } = useGetCategoriesQuery();
   const { data: categoryTree } = useGetCategoryTreeQuery();
 
   const [createCategory, { isLoading: isCreating }] =
     useCreateCategoryMutation();
+  const [updateCategory, { isLoading: isUpdating }] =
+    useUpdateCategoryMutation();
+  const [deleteCategory] = useDeleteCategoryMutation();
+
+  if (isLoading) return <h2>Loading...</h2>;
+
+  if (error) return <h2>Something went wrong.</h2>;
 
   const handleCreate = async () => {
     if (!name || !slug) return;
@@ -51,6 +65,63 @@ const Categories = () => {
     }
   };
 
+  const handleEdit = (category: Category) => {
+    setSelectedCategory(category);
+
+    setName(category.name);
+    setSlug(category.slug);
+    setDescription(category.description ?? '');
+    setImage(category.image ?? '');
+    setParentId(category.parentId ?? '');
+    setActive(category.active);
+    setSortOrder(category.sortOrder);
+
+    setIsEdit(true);
+
+    setOpenModal(true);
+  };
+
+  const handleUpdate = async () => {
+    if (!selectedCategory) return;
+
+    try {
+      await updateCategory({
+        id: selectedCategory.id,
+        name,
+        slug,
+        description,
+        image,
+        parentId: parentId || undefined,
+        active,
+        sortOrder,
+      }).unwrap();
+
+      setOpenModal(false);
+
+      setSelectedCategory(null);
+
+      setIsEdit(false);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    const ok = confirm('Delete this category?');
+
+    if (!ok) return;
+
+    setDeletingId(id);
+
+    try {
+      await deleteCategory(id).unwrap();
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
@@ -58,6 +129,7 @@ const Categories = () => {
 
         <button
           onClick={() => {
+            setSelectedCategory(null);
             setIsEdit(false);
 
             setName('');
@@ -102,12 +174,19 @@ const Categories = () => {
               <td className="p-3">{category.active ? 'Active' : 'Inactive'}</td>
 
               <td className="space-x-2 p-3">
-                <button className="cursor-pointer rounded bg-yellow-500 px-3 py-1 text-white">
+                <button
+                  onClick={() => handleEdit(category)}
+                  className="cursor-pointer rounded bg-yellow-500 px-3 py-1 text-white"
+                >
                   Edit
                 </button>
 
-                <button className="cursor-pointer rounded bg-red-500 px-3 py-1 text-white">
-                  Delete
+                <button
+                  onClick={() => handleDelete(category.id)}
+                  disabled={deletingId === category.id}
+                  className="cursor-pointer rounded bg-red-500 px-3 py-1 text-white disabled:opacity-50"
+                >
+                  {deletingId === category.id ? 'Deleting...' : 'Delete'}
                 </button>
               </td>
             </tr>
@@ -133,9 +212,9 @@ const Categories = () => {
         sortOrder={sortOrder}
         setSortOrder={setSortOrder}
         categories={categoryTree?.data ?? []}
-        isLoading={isCreating}
         onClose={() => setOpenModal(false)}
-        onSave={handleCreate}
+        isLoading={isEdit ? isUpdating : isCreating}
+        onSave={isEdit ? handleUpdate : handleCreate}
       />
     </div>
   );
