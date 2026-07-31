@@ -19,6 +19,8 @@ interface Props {
 
   isLoading: boolean;
 
+  isEdit: boolean;
+
   onClose: () => void;
   onSave: () => void;
 }
@@ -42,6 +44,8 @@ const RoleModal = ({
 
   isLoading,
 
+  isEdit,
+
   onClose,
   onSave,
 }: Props) => {
@@ -61,11 +65,13 @@ const RoleModal = ({
         <h2 className="mb-6 text-2xl font-bold">Role</h2>
 
         <input
-          readOnly
           value={name}
+          readOnly={isEdit}
           onChange={(e) => setName(e.target.value)}
           placeholder="Role Name"
-          className="mb-4 w-full rounded border p-2"
+          className={`mb-4 w-full rounded border p-2 ${
+            isEdit ? 'cursor-not-allowed bg-gray-100' : ''
+          }`}
         />
 
         <input

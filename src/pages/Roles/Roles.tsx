@@ -3,6 +3,7 @@ import RoleModal from '../../components/RoleModal';
 import { useGetPermissionGroupsQuery } from '../../features/permission/permissionApi';
 import {
   useCreateRoleMutation,
+  useDeleteRoleMutation,
   useGetRolesQuery,
   useUpdateRoleMutation,
   type Role,
@@ -16,6 +17,8 @@ const Roles = () => {
   const [permissionIds, setPermissionIds] = useState<string[]>([]);
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
   const [isEdit, setIsEdit] = useState(false);
+  const [deleteRole] = useDeleteRoleMutation();
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const { data, isLoading, error } = useGetRolesQuery();
   const { data: permissionData } = useGetPermissionGroupsQuery();
@@ -99,6 +102,22 @@ const Roles = () => {
     }
   };
 
+  const handleDelete = async (id: string) => {
+    const ok = confirm('Delete this role?');
+
+    if (!ok) return;
+
+    setDeletingId(id);
+
+    try {
+      await deleteRole(id).unwrap();
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   return (
     <div>
       <h1 className="mb-6 text-3xl font-bold">Roles</h1>
@@ -150,13 +169,17 @@ const Roles = () => {
               <td className="p-3 space-x-2">
                 <button
                   onClick={() => handleEdit(role)}
-                  className="rounded bg-yellow-500 px-3 py-1 text-white"
+                  className="rounded cursor-pointer bg-yellow-500 px-3 py-1 text-white"
                 >
                   Edit
                 </button>
 
-                <button className="rounded bg-red-500 px-3 py-1 text-white">
-                  Delete
+                <button
+                  onClick={() => handleDelete(role.id)}
+                  disabled={deletingId === role.id}
+                  className="rounded cursor-pointer bg-red-500 px-3 py-1 text-white disabled:opacity-50 disabled:cursor-none"
+                >
+                  {deletingId === role.id ? 'Deleting...' : 'Delete'}
                 </button>
               </td>
             </tr>
@@ -178,6 +201,7 @@ const Roles = () => {
         onClose={() => setOpenModal(false)}
         isLoading={isEdit ? isUpdating : isCreating}
         onSave={isEdit ? handleUpdate : handleCreate}
+        isEdit={isEdit}
       />
     </div>
   );
