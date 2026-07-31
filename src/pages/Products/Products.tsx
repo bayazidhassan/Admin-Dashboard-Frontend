@@ -283,7 +283,7 @@ const Product = () => {
         brands={brandsData?.data.items ?? []}
         categories={categoriesData?.data.items ?? []}
         isLoading={isCreating || isUpdating}
-        isEdit={false}
+        isEdit={isEdit}
         onClose={() => setOpenModal(false)}
         onSave={isEdit ? handleUpdateProduct : handleCreateProduct}
       />

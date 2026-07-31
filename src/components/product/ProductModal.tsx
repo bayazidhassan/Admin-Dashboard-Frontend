@@ -145,9 +145,12 @@ const ProductModal = ({
 
           <input
             value={sku}
+            readOnly={isEdit}
             onChange={(e) => setSku(e.target.value)}
             placeholder="SKU"
-            className="rounded border p-2"
+            className={`rounded border p-2 ${
+              isEdit ? 'cursor-not-allowed bg-gray-100' : ''
+            }`}
           />
 
           <input
