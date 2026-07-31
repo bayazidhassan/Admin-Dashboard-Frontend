@@ -1,8 +1,12 @@
 const Navbar = () => {
   return (
-    <div>
-      <h1>Navbar</h1>
-    </div>
+    <header className="flex h-16 items-center justify-between border-b bg-white px-6">
+      <h2 className="text-xl font-semibold">Admin Dashboard</h2>
+
+      <button className="rounded bg-red-500 px-4 py-2 text-white">
+        Logout
+      </button>
+    </header>
   );
 };
 
