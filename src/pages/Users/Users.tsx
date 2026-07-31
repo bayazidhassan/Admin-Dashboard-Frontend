@@ -4,31 +4,26 @@ import { useGetRolesQuery } from '../../features/role/roleApi';
 import {
   useCreateUserMutation,
   useGetUsersQuery,
+  useUpdateUserMutation,
+  type User,
 } from '../../features/user/userApi';
 
 const Users = () => {
   const [openModal, setOpenModal] = useState(false);
-
   const [isEdit, setIsEdit] = useState(false);
-
   const [name, setName] = useState('');
-
   const [email, setEmail] = useState('');
-
   const [password, setPassword] = useState('');
-
   const [roleId, setRoleId] = useState('');
-
   const [phone, setPhone] = useState('');
-
   const [gender, setGender] = useState('');
-
   const [active, setActive] = useState(true);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+
   const { data, isLoading, error } = useGetUsersQuery();
-
   const { data: rolesData } = useGetRolesQuery();
-
   const [createUser, { isLoading: isCreating }] = useCreateUserMutation();
+  const [updateUser, { isLoading: isUpdating }] = useUpdateUserMutation();
 
   if (isLoading) return <h2>Loading...</h2>;
   if (error) return <h2>Something went wrong.</h2>;
@@ -58,6 +53,43 @@ const Users = () => {
     }
   };
 
+  const handleEdit = (user: User) => {
+    setSelectedUser(user);
+    setName(user.name);
+    setEmail(user.email);
+    setPassword('');
+    setRoleId(user.roleId);
+    setPhone(user.phone ?? '');
+    setGender(user.gender ?? '');
+    setActive(user.active);
+    setIsEdit(true);
+    setOpenModal(true);
+  };
+
+  const handleUpdate = async () => {
+    if (!selectedUser) return;
+
+    try {
+      await updateUser({
+        id: selectedUser.id,
+        name,
+        email,
+        phone,
+        gender,
+        active,
+        roleId,
+      }).unwrap();
+
+      setOpenModal(false);
+
+      setSelectedUser(null);
+
+      setIsEdit(false);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
@@ -65,6 +97,7 @@ const Users = () => {
 
         <button
           onClick={() => {
+            setSelectedUser(null);
             setIsEdit(false);
 
             setName('');
@@ -106,7 +139,10 @@ const Users = () => {
               <td className="p-3">{user.active ? 'Active' : 'Inactive'}</td>
 
               <td className="space-x-2 p-3">
-                <button className="rounded bg-yellow-500 px-3 py-1 text-white">
+                <button
+                  onClick={() => handleEdit(user)}
+                  className="cursor-pointer rounded bg-yellow-500 px-3 py-1 text-white"
+                >
                   Edit
                 </button>
 
@@ -137,9 +173,9 @@ const Users = () => {
         active={active}
         setActive={setActive}
         roles={rolesData?.data.items ?? []}
-        isLoading={isCreating}
         onClose={() => setOpenModal(false)}
-        onSave={handleCreate}
+        isLoading={isEdit ? isUpdating : isCreating}
+        onSave={isEdit ? handleUpdate : handleCreate}
       />
     </div>
   );
