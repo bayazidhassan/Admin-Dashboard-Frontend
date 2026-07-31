@@ -70,7 +70,7 @@ const Login = () => {
 
         <button
           disabled={isLoading}
-          className="w-full rounded bg-blue-600 p-2 text-white"
+          className="w-full rounded cursor-pointer bg-blue-600 p-2 text-white"
         >
           {isLoading ? 'Logging in...' : 'Login'}
         </button>
