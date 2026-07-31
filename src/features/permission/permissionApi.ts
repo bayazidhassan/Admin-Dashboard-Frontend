@@ -60,6 +60,23 @@ export const permissionApi = baseApi.injectEndpoints({
 
       invalidatesTags: ['Permission'],
     }),
+    updatePermissionGroup: builder.mutation<
+      unknown,
+      {
+        id: string;
+        description?: string;
+        addActions?: string[];
+        removePermissionIds?: string[];
+      }
+    >({
+      query: ({ id, ...body }) => ({
+        url: `/permissions/groups/${id}`,
+        method: 'PATCH',
+        body,
+      }),
+
+      invalidatesTags: ['Permission'],
+    }),
   }),
 });
 
@@ -67,4 +84,5 @@ export const {
   useGetPermissionGroupsQuery,
   useCreatePermissionGroupMutation,
   useDeletePermissionGroupMutation,
+  useUpdatePermissionGroupMutation,
 } = permissionApi;

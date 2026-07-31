@@ -1,19 +1,31 @@
 import { useState } from 'react';
+import PermissionModal from '../../components/permissions/PermissionModal';
 import {
   useCreatePermissionGroupMutation,
   useDeletePermissionGroupMutation,
   useGetPermissionGroupsQuery,
+  useUpdatePermissionGroupMutation,
+  type PermissionGroup,
 } from '../../features/permission/permissionApi';
 
 const Permissions = () => {
   const { data, isLoading, error } = useGetPermissionGroupsQuery();
 
   const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
   const [actions, setActions] = useState<string[]>([]);
   const [deletePermissionGroup] = useDeletePermissionGroupMutation();
   const [createPermissionGroup, { isLoading: isCreating }] =
     useCreatePermissionGroupMutation();
+  const [selectedGroup, setSelectedGroup] = useState<PermissionGroup | null>(
+    null,
+  );
+  const [openModal, setOpenModal] = useState(false);
+  const [description, setDescription] = useState('');
+  const [addActions, setAddActions] = useState<string[]>([]);
+  const [removePermissionIds, setRemovePermissionIds] = useState<string[]>([]);
+
+  const [updatePermissionGroup, { isLoading: isUpdating }] =
+    useUpdatePermissionGroupMutation();
 
   const actionOptions = ['watch', 'create', 'read', 'update', 'delete'];
 
@@ -47,6 +59,40 @@ const Permissions = () => {
       setName('');
       setDescription('');
       setActions([]);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const handleEdit = (group: PermissionGroup) => {
+    setSelectedGroup(group);
+
+    setDescription(group.description ?? '');
+
+    setAddActions([]);
+
+    setRemovePermissionIds([]);
+
+    setOpenModal(true);
+  };
+
+  const handleUpdate = async () => {
+    if (!selectedGroup) return;
+
+    try {
+      await updatePermissionGroup({
+        id: selectedGroup.id,
+        description,
+        addActions,
+        removePermissionIds,
+      }).unwrap();
+
+      setOpenModal(false);
+      setSelectedGroup(null);
+
+      setDescription('');
+      setAddActions([]);
+      setRemovePermissionIds([]);
     } catch (error) {
       console.error(error);
     }
@@ -130,10 +176,17 @@ const Permissions = () => {
 
               <td className="p-3">{group.permissions.length}</td>
 
-              <td className="p-3">
+              <td className="p-3 space-x-2">
+                <button
+                  onClick={() => handleEdit(group)}
+                  className="rounded cursor-pointer bg-yellow-500 px-3 py-1 text-white"
+                >
+                  Edit
+                </button>
+
                 <button
                   onClick={() => handleDelete(group.id)}
-                  className="rounded bg-red-500 px-3 py-1 text-white"
+                  className="rounded cursor-pointer bg-red-500 px-3 py-1 text-white"
                 >
                   Delete
                 </button>
@@ -142,6 +195,23 @@ const Permissions = () => {
           ))}
         </tbody>
       </table>
+
+      <PermissionModal
+        open={openModal}
+        group={selectedGroup}
+        description={description}
+        setDescription={setDescription}
+        addActions={addActions}
+        setAddActions={setAddActions}
+        removePermissionIds={removePermissionIds}
+        setRemovePermissionIds={setRemovePermissionIds}
+        isLoading={isUpdating}
+        onClose={() => {
+          setOpenModal(false);
+          setSelectedGroup(null);
+        }}
+        onSave={handleUpdate}
+      />
     </div>
   );
 };
