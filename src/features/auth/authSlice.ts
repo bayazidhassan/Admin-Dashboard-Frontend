@@ -4,8 +4,6 @@ interface User {
   id: string;
   email: string;
   active: boolean;
-  role?: string;
-  permissions?: string[];
 }
 
 interface AuthState {
@@ -24,13 +22,7 @@ const authSlice = createSlice({
   initialState,
 
   reducers: {
-    setCredentials: (
-      state,
-      action: PayloadAction<{
-        accessToken: string;
-        user: User;
-      }>,
-    ) => {
+    setCredentials: (state, action: PayloadAction<AuthState>) => {
       state.accessToken = action.payload.accessToken;
       state.user = action.payload.user;
     },
