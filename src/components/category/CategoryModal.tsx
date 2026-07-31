@@ -85,9 +85,12 @@ const CategoryModal = ({
 
         <input
           value={slug}
-          onChange={(e) => setSlug(e.target.value)}
+          readOnly={isEdit}
           placeholder="Slug"
-          className="mb-4 w-full rounded border p-2"
+          onChange={(e) => setSlug(e.target.value)}
+          className={`mb-4 w-full rounded border p-2 ${
+            isEdit ? 'cursor-not-allowed bg-gray-100' : ''
+          }`}
         />
 
         <textarea
