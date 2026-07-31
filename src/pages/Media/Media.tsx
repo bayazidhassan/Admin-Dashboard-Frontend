@@ -1,8 +1,11 @@
+import { useState } from 'react';
+import UploadMediaModal from '../../components/media/UploadMediaModal';
 import { useGetMediaQuery } from '../../features/media/mediaApi';
 import { getMediaUrl } from '../../lib/media';
 
 const Media = () => {
   const { data, isLoading, error } = useGetMediaQuery();
+  const [openUploadModal, setOpenUploadModal] = useState(false);
 
   if (isLoading) return <h2>Loading...</h2>;
 
@@ -13,8 +16,10 @@ const Media = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Media Library</h1>
-
-        <button className="cursor-pointer rounded bg-black px-4 py-2 text-white">
+        <button
+          onClick={() => setOpenUploadModal(true)}
+          className="cursor-pointer rounded bg-black px-4 py-2 text-white"
+        >
           Upload
         </button>
       </div>
@@ -58,6 +63,11 @@ const Media = () => {
           </div>
         ))}
       </div>
+
+      <UploadMediaModal
+        open={openUploadModal}
+        onClose={() => setOpenUploadModal(false)}
+      />
     </div>
   );
 };
