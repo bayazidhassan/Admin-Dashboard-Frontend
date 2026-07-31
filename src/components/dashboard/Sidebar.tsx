@@ -6,15 +6,15 @@ const Sidebar = () => {
       <div className="p-5 text-xl font-bold">Admin Dashboard</div>
 
       <nav className="flex flex-col">
-        <NavLink to="/dashboard">Dashboard</NavLink>
-        <NavLink to="/dashboard/permissions">Permissions</NavLink>
-        <NavLink to="/dashboard/roles">Roles</NavLink>
-        <NavLink to="/dashboard/users">Users</NavLink>
-        <NavLink to="/dashboard/media">Media</NavLink>
-        <NavLink to="/dashboard/categories">Categories</NavLink>
-        <NavLink to="/dashboard/brands">Brands</NavLink>
-        <NavLink to="/dashboard/attributes">Attributes</NavLink>
-        <NavLink to="/dashboard/products">Products</NavLink>
+        <NavLink to="/">Dashboard</NavLink>
+        <NavLink to="/permissions">Permissions</NavLink>
+        <NavLink to="/roles">Roles</NavLink>
+        <NavLink to="/users">Users</NavLink>
+        <NavLink to="/media">Media</NavLink>
+        <NavLink to="/categories">Categories</NavLink>
+        <NavLink to="/brands">Brands</NavLink>
+        <NavLink to="/attributes">Attributes</NavLink>
+        <NavLink to="/products">Products</NavLink>
       </nav>
     </aside>
   );

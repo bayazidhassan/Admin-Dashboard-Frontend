@@ -29,7 +29,7 @@ const Login = () => {
         }),
       );
 
-      navigate('/dashboard');
+      navigate('/');
     } catch (err) {
       console.error(err);
       alert('Invalid email or password');
