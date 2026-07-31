@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import AttributeModal from '../../components/attribute/AttributeModal';
+import AttributeValuesModal from '../../components/attribute/AttributeValuesModal';
 import {
   useCreateAttributeMutation,
   useDeleteAttributeMutation,
@@ -188,6 +189,12 @@ const Attributes = () => {
         isLoading={isEdit ? isUpdating : isCreating}
         onClose={() => setOpenModal(false)}
         onSave={isEdit ? handleUpdate : handleCreate}
+      />
+
+      <AttributeValuesModal
+        open={openValuesModal}
+        attribute={selectedAttribute}
+        onClose={() => setOpenValuesModal(false)}
       />
     </div>
   );
