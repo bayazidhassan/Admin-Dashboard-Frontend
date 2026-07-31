@@ -5,18 +5,23 @@ interface LoginRequest {
   password: string;
 }
 
-export interface User {
-  id: string;
-  email: string;
-  active: boolean;
-}
-
 export interface LoginResponse {
   success: boolean;
   message: string;
   data: {
     accessToken: string;
-    user: User;
+  };
+}
+
+export interface SessionResponse {
+  success: boolean;
+  message: string;
+  data: {
+    id: string;
+    email: string;
+    active: boolean;
+    role: string;
+    permissions: string[];
   };
 }
 
@@ -30,17 +35,22 @@ export const authApi = baseApi.injectEndpoints({
       }),
     }),
 
-    logout: builder.mutation({
+    session: builder.query<SessionResponse, void>({
+      query: () => ({
+        url: '/auth/session',
+        method: 'GET',
+      }),
+      providesTags: ['Session'],
+    }),
+
+    logout: builder.mutation<{ success: boolean; message: string }, void>({
       query: () => ({
         url: '/auth/logout',
         method: 'POST',
       }),
-    }),
-
-    session: builder.query<User, void>({
-      query: () => '/auth/session',
+      invalidatesTags: ['Session'],
     }),
   }),
 });
 
-export const { useLoginMutation, useLogoutMutation, useSessionQuery } = authApi;
+export const { useLoginMutation, useSessionQuery, useLogoutMutation } = authApi;

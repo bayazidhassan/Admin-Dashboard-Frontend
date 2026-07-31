@@ -1,12 +1,12 @@
 import { useState } from 'react';
-import { useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 
+import { useAppDispatch } from '../../app/hooks';
 import { useLoginMutation } from '../../features/auth/authApi';
 import { setCredentials } from '../../features/auth/authSlice';
 
 const Login = () => {
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const navigate = useNavigate();
 
   const [login, { isLoading }] = useLoginMutation();
@@ -26,7 +26,6 @@ const Login = () => {
       dispatch(
         setCredentials({
           accessToken: res.data.accessToken,
-          user: res.data.user,
         }),
       );
 

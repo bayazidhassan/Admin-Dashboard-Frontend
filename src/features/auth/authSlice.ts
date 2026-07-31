@@ -1,9 +1,11 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 
-interface User {
+export interface User {
   id: string;
   email: string;
   active: boolean;
+  role: string;
+  permissions: string[];
 }
 
 interface AuthState {
@@ -22,9 +24,12 @@ const authSlice = createSlice({
   initialState,
 
   reducers: {
-    setCredentials: (state, action: PayloadAction<AuthState>) => {
+    setCredentials: (state, action: PayloadAction<{ accessToken: string }>) => {
       state.accessToken = action.payload.accessToken;
-      state.user = action.payload.user;
+    },
+
+    setUser: (state, action: PayloadAction<User>) => {
+      state.user = action.payload;
     },
 
     logout: (state) => {
@@ -34,6 +39,6 @@ const authSlice = createSlice({
   },
 });
 
-export const { setCredentials, logout } = authSlice.actions;
+export const { setCredentials, setUser, logout } = authSlice.actions;
 
 export default authSlice.reducer;
