@@ -120,9 +120,8 @@ const Roles = () => {
 
   return (
     <div>
-      <h1 className="mb-6 text-3xl font-bold">Roles</h1>
-
-      <div className="mb-6">
+      <div className="mb-6 flex items-center justify-between">
+        <h1 className="mb-6 text-3xl font-bold">Roles</h1>
         <button
           onClick={() => {
             setIsEdit(false);
