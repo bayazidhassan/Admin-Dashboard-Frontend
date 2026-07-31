@@ -4,7 +4,7 @@ import type { RootState } from './storeTypes';
 export const baseApi = createApi({
   reducerPath: 'baseApi',
 
-  tagTypes: ['Permission', 'Role'],
+  tagTypes: ['Permission', 'Role', 'User'],
 
   baseQuery: fetchBaseQuery({
     baseUrl: import.meta.env.VITE_API_URL,
