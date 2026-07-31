@@ -4,6 +4,7 @@ import { useGetBrandsQuery } from '../../features/brand/brandApi';
 import { useGetCategoriesQuery } from '../../features/category/categoryApi';
 import {
   useCreateProductMutation,
+  useDeleteProductMutation,
   useGetProductsQuery,
 } from '../../features/product/productApi';
 
@@ -25,6 +26,8 @@ const Product = () => {
   const [sortOrder, setSortOrder] = useState(0);
   const [brandId, setBrandId] = useState('');
   const [categoryIds, setCategoryIds] = useState<string[]>([]);
+  const [deleteProduct, { isLoading: isDeleting }] = useDeleteProductMutation();
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const { data: brandsData } = useGetBrandsQuery();
   const { data: categoriesData } = useGetCategoriesQuery();
@@ -71,8 +74,25 @@ const Product = () => {
     }
   };
 
-  if (isLoading) return <h2>Loading...</h2>;
+  const handleDeleteProduct = async (id: string) => {
+    const confirmDelete = window.confirm(
+      'Are you sure you want to delete this product?',
+    );
 
+    if (!confirmDelete) return;
+
+    try {
+      setDeletingId(id);
+
+      await deleteProduct(id).unwrap();
+    } catch (error) {
+      console.log(error);
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  if (isLoading) return <h2>Loading...</h2>;
   if (error) return <h2>Something went wrong.</h2>;
 
   return (
@@ -124,8 +144,14 @@ const Product = () => {
                     Edit
                   </button>
 
-                  <button className="cursor-pointer rounded bg-red-500 px-3 py-1 text-white">
-                    Delete
+                  <button
+                    onClick={() => handleDeleteProduct(product.id)}
+                    disabled={isDeleting && deletingId === product.id}
+                    className="cursor-pointer rounded bg-red-500 px-3 py-1 text-white disabled:opacity-50"
+                  >
+                    {isDeleting && deletingId === product.id
+                      ? 'Deleting...'
+                      : 'Delete'}
                   </button>
                 </td>
               </tr>
