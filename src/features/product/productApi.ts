@@ -70,6 +70,18 @@ export interface CreateProductDto {
 
 export type UpdateProductDto = Partial<CreateProductDto>;
 
+export interface AttachProductMediaDto {
+  mediaId: string;
+  isThumbnail?: boolean;
+  isGallery?: boolean;
+  sortOrder?: number;
+}
+
+export interface ProductMediaResponse {
+  success: boolean;
+  message: string;
+}
+
 export const productApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     getProducts: builder.query<ProductsResponse, void>({
@@ -113,6 +125,35 @@ export const productApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ['Product'],
     }),
+
+    attachProductMedia: builder.mutation<
+      ProductMediaResponse,
+      {
+        productId: string;
+        body: AttachProductMediaDto;
+      }
+    >({
+      query: ({ productId, body }) => ({
+        url: `/products/${productId}/media`,
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['Product'],
+    }),
+
+    detachProductMedia: builder.mutation<
+      ProductMediaResponse,
+      {
+        productId: string;
+        mediaId: string;
+      }
+    >({
+      query: ({ productId, mediaId }) => ({
+        url: `/products/${productId}/media/${mediaId}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['Product'],
+    }),
   }),
 });
 
@@ -122,4 +163,6 @@ export const {
   useCreateProductMutation,
   useUpdateProductMutation,
   useDeleteProductMutation,
+  useAttachProductMediaMutation,
+  useDetachProductMediaMutation,
 } = productApi;
