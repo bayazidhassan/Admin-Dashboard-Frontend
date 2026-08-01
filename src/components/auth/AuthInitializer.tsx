@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useDispatch } from 'react-redux';
 import {
   useLazySessionQuery,
@@ -21,11 +21,19 @@ interface Props {
 const AuthInitializer = ({ children }: Props) => {
   const dispatch = useDispatch();
   const [isInitializing, setIsInitializing] = useState(true);
+  const hasRun = useRef(false);
 
   const [refresh] = useRefreshMutation();
   const [fetchSession] = useLazySessionQuery();
 
   useEffect(() => {
+    // Guard against React StrictMode's double effect invocation in dev.
+    // Without this, refresh() can fire twice almost simultaneously —
+    // since refresh tokens rotate on use, the second call can reuse an
+    // already-invalidated cookie and wrongly fail the whole bootstrap.
+    if (hasRun.current) return;
+    hasRun.current = true;
+
     const bootstrap = async () => {
       try {
         const result = await refresh().unwrap();
