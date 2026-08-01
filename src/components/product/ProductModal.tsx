@@ -1,8 +1,10 @@
 import type { Attribute } from '../../features/attribute/attributeApi';
 import type { Brand } from '../../features/brand/brandApi';
 import type { Category } from '../../features/category/categoryApi';
+import ProductMediaManager from './ProductMediaManager';
 
 type VariantForm = {
+  id?: string;
   sku: string;
   price: number;
   salePrice: number;
@@ -11,8 +13,41 @@ type VariantForm = {
   attributeValueIds: string[];
 };
 
+type CategoryWithParent = {
+  id: string;
+  name: string;
+  parentId?: string | null;
+};
+
+function sortCategoriesAsTree<T extends CategoryWithParent>(
+  categories: T[],
+): { category: T; depth: number }[] {
+  const byParent = new Map<string | null, T[]>();
+
+  for (const cat of categories) {
+    const key = cat.parentId ?? null;
+    if (!byParent.has(key)) byParent.set(key, []);
+    byParent.get(key)!.push(cat);
+  }
+
+  const result: { category: T; depth: number }[] = [];
+
+  const walk = (parentId: string | null, depth: number) => {
+    const children = byParent.get(parentId) ?? [];
+    for (const child of children) {
+      result.push({ category: child, depth });
+      walk(child.id, depth + 1);
+    }
+  };
+
+  walk(null, 0);
+  return result;
+}
+
 interface Props {
   open: boolean;
+
+  productId?: string; // present when editing; used to load media manager
 
   name: string;
   setName: React.Dispatch<React.SetStateAction<string>>;
@@ -67,6 +102,8 @@ interface Props {
 
   attributes: Attribute[];
 
+  formError?: string | null;
+
   isLoading: boolean;
   isEdit: boolean;
 
@@ -76,6 +113,8 @@ interface Props {
 
 const ProductModal = ({
   open,
+
+  productId,
 
   name,
   setName,
@@ -130,6 +169,8 @@ const ProductModal = ({
 
   attributes,
 
+  formError,
+
   isLoading,
   isEdit,
 
@@ -144,12 +185,23 @@ const ProductModal = ({
     );
   };
 
+  const handleRemoveVariant = (index: number) => {
+    if (variants.length <= 1) return; // spec requires at least one variant
+    setVariants((prev) => prev.filter((_, i) => i !== index));
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
       <div className="max-h-[90vh] w-200 overflow-y-auto rounded bg-white p-6">
         <h2 className="mb-6 text-2xl font-bold">
           {isEdit ? 'Edit Product' : 'Create Product'}
         </h2>
+
+        {formError && (
+          <div className="mb-4 rounded border border-red-300 bg-red-50 p-3 text-sm text-red-700">
+            {formError}
+          </div>
+        )}
 
         <div className="mb-6">
           <label className="mb-2 block font-medium">Product Type</label>
@@ -253,7 +305,23 @@ const ProductModal = ({
 
               {variants.map((variant, index) => (
                 <div key={index} className="mb-6 rounded-lg border p-4">
-                  <h4 className="mb-4 font-semibold">Variant #{index + 1}</h4>
+                  <div className="mb-4 flex items-center justify-between">
+                    <h4 className="font-semibold">Variant #{index + 1}</h4>
+
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveVariant(index)}
+                      disabled={variants.length <= 1}
+                      className="rounded bg-red-500 px-3 py-1 text-sm text-white disabled:cursor-not-allowed disabled:opacity-50"
+                      title={
+                        variants.length <= 1
+                          ? 'At least one variant is required'
+                          : 'Remove this variant'
+                      }
+                    >
+                      Remove
+                    </button>
+                  </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <input
@@ -261,7 +329,7 @@ const ProductModal = ({
                       onChange={(e) =>
                         setVariants((prev) => {
                           const copy = [...prev];
-                          copy[index].sku = e.target.value;
+                          copy[index] = { ...copy[index], sku: e.target.value };
                           return copy;
                         })
                       }
@@ -275,7 +343,10 @@ const ProductModal = ({
                       onChange={(e) =>
                         setVariants((prev) => {
                           const copy = [...prev];
-                          copy[index].price = Number(e.target.value);
+                          copy[index] = {
+                            ...copy[index],
+                            price: Number(e.target.value),
+                          };
                           return copy;
                         })
                       }
@@ -289,7 +360,10 @@ const ProductModal = ({
                       onChange={(e) =>
                         setVariants((prev) => {
                           const copy = [...prev];
-                          copy[index].salePrice = Number(e.target.value);
+                          copy[index] = {
+                            ...copy[index],
+                            salePrice: Number(e.target.value),
+                          };
                           return copy;
                         })
                       }
@@ -303,7 +377,10 @@ const ProductModal = ({
                       onChange={(e) =>
                         setVariants((prev) => {
                           const copy = [...prev];
-                          copy[index].stock = Number(e.target.value);
+                          copy[index] = {
+                            ...copy[index],
+                            stock: Number(e.target.value),
+                          };
                           return copy;
                         })
                       }
@@ -317,7 +394,10 @@ const ProductModal = ({
                       onChange={(e) =>
                         setVariants((prev) => {
                           const copy = [...prev];
-                          copy[index].weight = Number(e.target.value);
+                          copy[index] = {
+                            ...copy[index],
+                            weight: Number(e.target.value),
+                          };
                           return copy;
                         })
                       }
@@ -430,20 +510,26 @@ const ProductModal = ({
         <div className="mt-6 rounded border p-4">
           <h3 className="mb-3 font-semibold">Categories</h3>
 
-          <div className="grid grid-cols-2 gap-2">
-            {categories.map((category) => (
-              <label key={category.id} className="flex items-center gap-2">
+          <div className="flex flex-col gap-2">
+            {sortCategoriesAsTree(categories).map(({ category, depth }) => (
+              <label
+                key={category.id}
+                className="flex items-center gap-2"
+                style={{ paddingLeft: `${depth * 20}px` }}
+              >
                 <input
                   type="checkbox"
                   checked={categoryIds.includes(category.id)}
                   onChange={() => toggleCategory(category.id)}
                 />
-
+                {depth > 0 && <span className="text-gray-400">└</span>}
                 {category.name}
               </label>
             ))}
           </div>
         </div>
+
+        {isEdit && productId && <ProductMediaManager productId={productId} />}
 
         <div className="mt-6 flex gap-6">
           <label className="flex items-center gap-2">
