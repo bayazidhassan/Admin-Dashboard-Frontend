@@ -25,6 +25,14 @@ export interface SessionResponse {
   };
 }
 
+export interface RefreshResponse {
+  success: boolean;
+  message: string;
+  data: {
+    accessToken: string;
+  };
+}
+
 export const authApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     login: builder.mutation<LoginResponse, LoginRequest>({
@@ -42,6 +50,13 @@ export const authApi = baseApi.injectEndpoints({
       }),
     }),
 
+    refresh: builder.mutation<RefreshResponse, void>({
+      query: () => ({
+        url: '/auth/refresh',
+        method: 'POST',
+      }),
+    }),
+
     logout: builder.mutation<{ success: boolean; message: string }, void>({
       query: () => ({
         url: '/auth/logout',
@@ -55,5 +70,6 @@ export const {
   useLoginMutation,
   useLazySessionQuery,
   useSessionQuery,
+  useRefreshMutation,
   useLogoutMutation,
 } = authApi;
