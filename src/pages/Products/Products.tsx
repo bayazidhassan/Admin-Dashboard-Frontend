@@ -15,7 +15,7 @@ import {
   useUpdateProductMutation,
   useUpdateVariableProductMutation,
   useUpdateVariantMutation,
-  type Product,
+  type Product as ProductItem,
 } from '../../features/product/productApi';
 
 type VariantForm = {
@@ -60,7 +60,9 @@ const Product = () => {
   const [variants, setVariants] = useState<VariantForm[]>([emptyVariant]);
   // track ids that existed on load, so we know what was removed on save
   const [originalVariantIds, setOriginalVariantIds] = useState<string[]>([]);
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<ProductItem | null>(
+    null,
+  );
   const [isEdit, setIsEdit] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
@@ -205,7 +207,7 @@ const Product = () => {
   // EDIT PRODUCT
   // ===============================
 
-  const handleEditProduct = (product: Product) => {
+  const handleEditProduct = (product: ProductItem) => {
     setSelectedProduct(product);
 
     setProductType(product.hasVariants ? 'variable' : 'simple');

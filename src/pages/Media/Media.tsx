@@ -4,7 +4,7 @@ import UploadMediaModal from '../../components/media/UploadMediaModal';
 import {
   useDeleteMediaMutation,
   useGetMediaQuery,
-  type Media,
+  type Media as MediaItem,
 } from '../../features/media/mediaApi';
 import { getMediaUrl } from '../../lib/media';
 
@@ -12,7 +12,7 @@ const Media = () => {
   const { data, isLoading, error } = useGetMediaQuery();
   const [openUploadModal, setOpenUploadModal] = useState(false);
   const [deleteMedia, { isLoading: isDeleting }] = useDeleteMediaMutation();
-  const [selectedMedia, setSelectedMedia] = useState<Media | null>(null);
+  const [selectedMedia, setSelectedMedia] = useState<MediaItem | null>(null);
   const [openEditModal, setOpenEditModal] = useState(false);
   const [title, setTitle] = useState('');
   const [altText, setAltText] = useState('');
