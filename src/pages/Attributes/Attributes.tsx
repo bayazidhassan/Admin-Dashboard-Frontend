@@ -67,6 +67,8 @@ const Attributes = () => {
       await updateAttribute({
         id: selectedAttribute.id,
         name,
+        slug,
+        type,
       }).unwrap();
 
       setOpenModal(false);
