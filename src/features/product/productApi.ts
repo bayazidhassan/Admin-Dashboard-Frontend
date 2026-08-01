@@ -239,6 +239,30 @@ export interface ReorderMediaItem {
   sortOrder: number;
 }
 
+export interface AttachVariantMediaDto {
+  mediaId: string;
+  isThumbnail?: boolean;
+  isGallery?: boolean;
+  sortOrder?: number;
+}
+
+export interface AttachAttributeValueMediaDto {
+  mediaId: string;
+  isThumbnail?: boolean;
+  isGallery?: boolean;
+  sortOrder?: number;
+}
+
+export interface AttributeValueMediaResponse {
+  success: boolean;
+  message: string;
+  data: {
+    id: string;
+    value: string;
+    mediaAttachments: ProductMediaAttachment[];
+  };
+}
+
 const buildProductsQuery = (params?: GetProductsParams) => {
   const searchParams = new URLSearchParams();
 
@@ -400,6 +424,51 @@ export const productApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ['Product'],
     }),
+    attachVariantMedia: builder.mutation<
+      ProductMediaResponse,
+      { variantId: string; body: AttachVariantMediaDto }
+    >({
+      query: ({ variantId, body }) => ({
+        url: `/products/variants/${variantId}/media`,
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['Product'],
+    }),
+
+    detachVariantMedia: builder.mutation<
+      ProductMediaResponse,
+      { variantId: string; mediaId: string }
+    >({
+      query: ({ variantId, mediaId }) => ({
+        url: `/products/variants/${variantId}/media/${mediaId}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['Product'],
+    }),
+
+    attachAttributeValueMedia: builder.mutation<
+      AttributeValueMediaResponse,
+      { valueId: string; body: AttachAttributeValueMediaDto }
+    >({
+      query: ({ valueId, body }) => ({
+        url: `/products/attribute-values/${valueId}/media`,
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['Product'],
+    }),
+
+    detachAttributeValueMedia: builder.mutation<
+      AttributeValueMediaResponse,
+      { valueId: string; mediaId: string }
+    >({
+      query: ({ valueId, mediaId }) => ({
+        url: `/products/attribute-values/${valueId}/media/${mediaId}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['Product'],
+    }),
   }),
 });
 
@@ -417,4 +486,8 @@ export const {
   useAddVariantMutation,
   useUpdateVariantMutation,
   useDeleteVariantMutation,
+  useAttachVariantMediaMutation,
+  useDetachVariantMediaMutation,
+  useAttachAttributeValueMediaMutation,
+  useDetachAttributeValueMediaMutation,
 } = productApi;

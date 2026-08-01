@@ -13,6 +13,21 @@ export interface AttributeValue {
   slug: string;
   referenceValue: string | null;
   attributeId: string;
+  mediaAttachments: {
+    id: string;
+    mediaId: string;
+    isThumbnail: boolean;
+    isGallery: boolean;
+    sortOrder: number;
+    media: {
+      id: string;
+      publicUrl: string;
+      thumbnail?: string | null;
+      fileName: string;
+      altText?: string | null;
+      title?: string | null;
+    };
+  }[];
 }
 
 export interface Attribute {
