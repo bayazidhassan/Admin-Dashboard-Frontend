@@ -6,6 +6,7 @@ import { useGetAttributesQuery } from '../../features/attribute/attributeApi';
 import { useGetBrandsQuery } from '../../features/brand/brandApi';
 import { useGetCategoriesQuery } from '../../features/category/categoryApi';
 
+import { toast } from 'react-hot-toast';
 import {
   useAddVariantMutation,
   useCreateProductMutation,
@@ -17,7 +18,7 @@ import {
   useUpdateVariableProductMutation,
   useUpdateVariantMutation,
   type GetProductsParams,
-  type Product,
+  type Product as ProductItem,
 } from '../../features/product/productApi';
 
 type VariantForm = {
@@ -109,7 +110,9 @@ const Product = () => {
   );
   const [variants, setVariants] = useState<VariantForm[]>([emptyVariant]);
   const [originalVariantIds, setOriginalVariantIds] = useState<string[]>([]);
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<ProductItem | null>(
+    null,
+  );
   const [isEdit, setIsEdit] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
@@ -130,10 +133,6 @@ const Product = () => {
   const [updateVariant, { isLoading: isUpdatingVariant }] =
     useUpdateVariantMutation();
   const [deleteVariant] = useDeleteVariantMutation();
-
-  // ===============================
-  // RESET FORM
-  // ===============================
 
   const resetProductForm = () => {
     setProductType('simple');
@@ -162,10 +161,6 @@ const Product = () => {
     setOriginalVariantIds([]);
     setFormError(null);
   };
-
-  // ===============================
-  // CREATE PRODUCT
-  // ===============================
 
   const handleCreateProduct = async () => {
     setFormError(null);
@@ -236,6 +231,8 @@ const Product = () => {
         }).unwrap();
       }
 
+      toast.success('Product created successfully!');
+
       setOpenModal(false);
 
       resetProductForm();
@@ -250,11 +247,7 @@ const Product = () => {
     }
   };
 
-  // ===============================
-  // EDIT PRODUCT
-  // ===============================
-
-  const handleEditProduct = (product: Product) => {
+  const handleEditProduct = (product: ProductItem) => {
     setSelectedProduct(product);
 
     setProductType(product.hasVariants ? 'variable' : 'simple');
@@ -307,10 +300,6 @@ const Product = () => {
     setIsEdit(true);
     setOpenModal(true);
   };
-
-  // ===============================
-  // UPDATE PRODUCT
-  // ===============================
 
   const handleUpdateProduct = async () => {
     if (!selectedProduct) return;
@@ -440,10 +429,6 @@ const Product = () => {
     }
   };
 
-  // ===============================
-  // DELETE PRODUCT
-  // ===============================
-
   const handleDeleteProduct = async (id: string) => {
     const confirmDelete = window.confirm(
       'Are you sure you want to delete this product?',
@@ -487,7 +472,6 @@ const Product = () => {
         </button>
       </div>
 
-      {/* ================= FILTER BAR ================= */}
       <div className="flex flex-wrap items-center gap-3 rounded-lg border bg-white p-4">
         <form onSubmit={handleSearchSubmit} className="flex gap-2">
           <input
@@ -667,7 +651,6 @@ const Product = () => {
         </table>
       </div>
 
-      {/* ================= PAGINATION ================= */}
       {data && data.data.total > PAGE_SIZE && (
         <div className="flex items-center justify-between">
           <p className="text-sm text-gray-500">
