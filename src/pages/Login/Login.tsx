@@ -15,8 +15,8 @@ const Login = () => {
   const [login, { isLoading }] = useLoginMutation();
   const [getSession] = useLazySessionQuery();
 
-  const [email, setEmail] = useState('bayazidhassan776@gmail.com');
-  const [password, setPassword] = useState('12345678');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
 
   const handleSubmit = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
