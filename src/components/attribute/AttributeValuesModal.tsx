@@ -12,6 +12,8 @@ import type {
   AttributeValue,
 } from '../../features/attribute/attributeApi';
 
+import AttributeValueMediaManager from './AttributeValueMediaManager';
+
 interface Props {
   open: boolean;
   attribute: Attribute | null;
@@ -162,6 +164,7 @@ const AttributeValuesModal = ({ open, attribute, onClose }: Props) => {
               <th className="p-3 text-left">Value</th>
               <th className="p-3 text-left">Slug</th>
               <th className="p-3 text-left">Reference</th>
+              <th className="p-3 text-left">Photos</th>
               <th className="p-3 text-left">Actions</th>
             </tr>
           </thead>
@@ -174,6 +177,10 @@ const AttributeValuesModal = ({ open, attribute, onClose }: Props) => {
                 <td className="p-3">{item.slug}</td>
 
                 <td className="p-3">{item.referenceValue ?? '-'}</td>
+
+                <td className="p-3">
+                  <AttributeValueMediaManager attributeValue={item} />
+                </td>
 
                 <td className="space-x-2 p-3">
                   <button
