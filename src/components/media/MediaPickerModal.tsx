@@ -13,7 +13,7 @@ const MediaPickerModal = ({ open, media, onClose, onSelect }: Props) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="max-h-[90vh] w-[1000px] overflow-y-auto rounded-lg bg-white p-6">
+      <div className="max-h-[90vh] w-250 overflow-y-auto rounded-lg bg-white p-6">
         <div className="mb-6 flex items-center justify-between">
           <h2 className="text-2xl font-bold">Select Media</h2>
 

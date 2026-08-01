@@ -1,14 +1,25 @@
 import { useState } from 'react';
 import ProductModal from '../../components/product/ProductModal';
+import { useGetAttributesQuery } from '../../features/attribute/attributeApi';
 import { useGetBrandsQuery } from '../../features/brand/brandApi';
 import { useGetCategoriesQuery } from '../../features/category/categoryApi';
 import {
   useCreateProductMutation,
+  useCreateVariableProductMutation,
   useDeleteProductMutation,
   useGetProductsQuery,
   useUpdateProductMutation,
   type Product,
 } from '../../features/product/productApi';
+
+type VariantForm = {
+  sku: string;
+  price: number;
+  salePrice: number;
+  stock: number;
+  weight: number;
+  attributeValueIds: string[];
+};
 
 const Product = () => {
   const { data, isLoading, error } = useGetProductsQuery();
@@ -32,33 +43,68 @@ const Product = () => {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isEdit, setIsEdit] = useState(false);
+  const [productType, setProductType] = useState<'simple' | 'variable'>(
+    'simple',
+  );
+  const [variants, setVariants] = useState<VariantForm[]>([
+    {
+      sku: '',
+      price: 0,
+      salePrice: 0,
+      stock: 0,
+      weight: 0,
+      attributeValueIds: [],
+    },
+  ]);
 
   const { data: brandsData } = useGetBrandsQuery();
   const { data: categoriesData } = useGetCategoriesQuery();
+  const { data: attributeData } = useGetAttributesQuery();
 
   const [createProduct, { isLoading: isCreating }] = useCreateProductMutation();
   const [updateProduct, { isLoading: isUpdating }] = useUpdateProductMutation();
+  const [createVariableProduct, { isLoading: isCreatingVariable }] =
+    useCreateVariableProductMutation();
 
   const handleCreateProduct = async () => {
     try {
-      await createProduct({
-        name,
-        slug,
-        sku,
-        shortDescription,
-        longDescription,
-        price,
-        salePrice,
-        stock,
-        weight,
-        active,
-        featured,
-        sortOrder,
-        brandId: brandId || undefined,
-        categoryIds,
-      }).unwrap();
+      if (productType === 'simple') {
+        await createProduct({
+          name,
+          slug,
+          sku,
+          shortDescription,
+          longDescription,
+          price,
+          salePrice,
+          stock,
+          weight,
+          active,
+          featured,
+          sortOrder,
+          brandId: brandId || undefined,
+          categoryIds,
+        }).unwrap();
+      } else {
+        await createVariableProduct({
+          name,
+          slug,
+          hasVariants: true,
+          shortDescription,
+          longDescription,
+          weight,
+          active,
+          featured,
+          sortOrder,
+          brandId: brandId || undefined,
+          categoryIds,
+          variants,
+        }).unwrap();
+      }
 
       setOpenModal(false);
+
+      setProductType('simple');
 
       setName('');
       setSlug('');
@@ -74,6 +120,17 @@ const Product = () => {
       setSortOrder(0);
       setBrandId('');
       setCategoryIds([]);
+
+      setVariants([
+        {
+          sku: '',
+          price: 0,
+          salePrice: 0,
+          stock: 0,
+          weight: 0,
+          attributeValueIds: [],
+        },
+      ]);
     } catch (error) {
       console.log(error);
     }
@@ -282,7 +339,12 @@ const Product = () => {
         setCategoryIds={setCategoryIds}
         brands={brandsData?.data.items ?? []}
         categories={categoriesData?.data.items ?? []}
-        isLoading={isCreating || isUpdating}
+        productType={productType}
+        setProductType={setProductType}
+        variants={variants}
+        setVariants={setVariants}
+        attributes={attributeData?.data.items ?? []}
+        isLoading={isCreating || isCreatingVariable || isUpdating}
         isEdit={isEdit}
         onClose={() => setOpenModal(false)}
         onSave={isEdit ? handleUpdateProduct : handleCreateProduct}

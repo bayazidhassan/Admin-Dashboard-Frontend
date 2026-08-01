@@ -82,6 +82,31 @@ export interface ProductMediaResponse {
   message: string;
 }
 
+export interface CreateVariableProductDto {
+  name: string;
+  slug: string;
+  hasVariants: true;
+  shortDescription?: string;
+  longDescription?: string;
+  weight?: number;
+  active?: boolean;
+  featured?: boolean;
+  sortOrder?: number;
+  brandId?: string;
+  categoryIds: string[];
+
+  variants: {
+    sku: string;
+    price: number;
+    salePrice?: number;
+    stock: number;
+    lowStockThreshold?: number;
+    weight?: number;
+    active?: boolean;
+    attributeValueIds: string[];
+  }[];
+}
+
 export const productApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     getProducts: builder.query<ProductsResponse, void>({
@@ -154,6 +179,17 @@ export const productApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ['Product'],
     }),
+    createVariableProduct: builder.mutation<
+      ProductResponse,
+      CreateVariableProductDto
+    >({
+      query: (body) => ({
+        url: '/products/variable',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['Product'],
+    }),
   }),
 });
 
@@ -165,4 +201,5 @@ export const {
   useDeleteProductMutation,
   useAttachProductMediaMutation,
   useDetachProductMediaMutation,
+  useCreateVariableProductMutation,
 } = productApi;
