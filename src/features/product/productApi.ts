@@ -2,6 +2,22 @@ import { baseApi } from '../../app/baseApi';
 import type { Brand } from '../brand/brandApi';
 import type { Category } from '../category/categoryApi';
 
+export interface ProductThumbnail {
+  id: string;
+  mediaId: string;
+  isThumbnail: boolean;
+  isGallery: boolean;
+  sortOrder: number;
+  media: {
+    id: string;
+    publicUrl: string;
+    thumbnail?: string | null;
+    fileName: string;
+    altText?: string | null;
+    title?: string | null;
+  };
+}
+
 export type Product = {
   id: string;
   name: string;
@@ -57,8 +73,27 @@ export type Product = {
   minSalePrice?: number | null;
   maxSalePrice?: number | null;
 
-  thumbnail?: unknown;
+  thumbnail?: ProductThumbnail | null;
 };
+
+export interface GetProductsParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  brandId?: string;
+  categoryId?: string;
+  active?: boolean;
+  stockStatus?: string;
+  sortBy?:
+    | 'createdAt'
+    | 'updatedAt'
+    | 'name'
+    | 'price'
+    | 'salePrice'
+    | 'stock'
+    | 'sortOrder';
+  sortOrder?: 'asc' | 'desc';
+}
 
 export interface ProductsResponse {
   success: boolean;
@@ -204,10 +239,28 @@ export interface ReorderMediaItem {
   sortOrder: number;
 }
 
+const buildProductsQuery = (params?: GetProductsParams) => {
+  const searchParams = new URLSearchParams();
+
+  if (params?.page) searchParams.set('page', String(params.page));
+  if (params?.limit) searchParams.set('limit', String(params.limit));
+  if (params?.search) searchParams.set('search', params.search);
+  if (params?.brandId) searchParams.set('brandId', params.brandId);
+  if (params?.categoryId) searchParams.set('categoryId', params.categoryId);
+  if (params?.active !== undefined)
+    searchParams.set('active', String(params.active));
+  if (params?.stockStatus) searchParams.set('stockStatus', params.stockStatus);
+  if (params?.sortBy) searchParams.set('sortBy', params.sortBy);
+  if (params?.sortOrder) searchParams.set('sortOrder', params.sortOrder);
+
+  const qs = searchParams.toString();
+  return qs ? `/products?${qs}` : '/products';
+};
+
 export const productApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
-    getProducts: builder.query<ProductsResponse, void>({
-      query: () => '/products',
+    getProducts: builder.query<ProductsResponse, GetProductsParams | void>({
+      query: (params) => buildProductsQuery(params ?? undefined),
       providesTags: ['Product'],
     }),
 

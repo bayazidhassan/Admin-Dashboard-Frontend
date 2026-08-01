@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import ProductModal from '../../components/product/ProductModal';
+import { getMediaUrl } from '../../lib/media';
 
 import { useGetAttributesQuery } from '../../features/attribute/attributeApi';
 import { useGetBrandsQuery } from '../../features/brand/brandApi';
@@ -15,7 +16,8 @@ import {
   useUpdateProductMutation,
   useUpdateVariableProductMutation,
   useUpdateVariantMutation,
-  type Product as ProductItem,
+  type GetProductsParams,
+  type Product,
 } from '../../features/product/productApi';
 
 type VariantForm = {
@@ -37,8 +39,56 @@ const emptyVariant: VariantForm = {
   attributeValueIds: [],
 };
 
+const PAGE_SIZE = 10;
+
 const Product = () => {
-  const { data, isLoading, error } = useGetProductsQuery();
+  // ===============================
+  // LIST CONTROLS
+  // ===============================
+  const [page, setPage] = useState(1);
+  const [searchInput, setSearchInput] = useState('');
+  const [search, setSearch] = useState('');
+  const [filterBrandId, setFilterBrandId] = useState('');
+  const [filterCategoryId, setFilterCategoryId] = useState('');
+  const [filterStatus, setFilterStatus] = useState<'' | 'true' | 'false'>('');
+  const [sortBy, setSortBy] =
+    useState<GetProductsParams['sortBy']>('createdAt');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+
+  const queryParams: GetProductsParams = {
+    page,
+    limit: PAGE_SIZE,
+    search: search || undefined,
+    brandId: filterBrandId || undefined,
+    categoryId: filterCategoryId || undefined,
+    active: filterStatus === '' ? undefined : filterStatus === 'true',
+    sortBy,
+    sortOrder,
+  };
+
+  const { data, isLoading, error } = useGetProductsQuery(queryParams);
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setPage(1);
+    setSearch(searchInput.trim());
+  };
+
+  const handleSortChange = (value: string) => {
+    const [field, order] = value.split(':') as [
+      GetProductsParams['sortBy'],
+      'asc' | 'desc',
+    ];
+    setSortBy(field);
+    setSortOrder(order);
+    setPage(1);
+  };
+
+  const totalPages = data ? Math.ceil(data.data.total / PAGE_SIZE) : 1;
+
+  // ===============================
+  // MODAL / FORM STATE
+  // ===============================
   const [openModal, setOpenModal] = useState(false);
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
@@ -51,18 +101,15 @@ const Product = () => {
   const [weight, setWeight] = useState(0);
   const [active, setActive] = useState(true);
   const [featured, setFeatured] = useState(false);
-  const [sortOrder, setSortOrder] = useState(0);
+  const [sortOrderField, setSortOrderField] = useState(0);
   const [brandId, setBrandId] = useState('');
   const [categoryIds, setCategoryIds] = useState<string[]>([]);
   const [productType, setProductType] = useState<'simple' | 'variable'>(
     'simple',
   );
   const [variants, setVariants] = useState<VariantForm[]>([emptyVariant]);
-  // track ids that existed on load, so we know what was removed on save
   const [originalVariantIds, setOriginalVariantIds] = useState<string[]>([]);
-  const [selectedProduct, setSelectedProduct] = useState<ProductItem | null>(
-    null,
-  );
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isEdit, setIsEdit] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
@@ -106,7 +153,7 @@ const Product = () => {
 
     setActive(true);
     setFeatured(false);
-    setSortOrder(0);
+    setSortOrderField(0);
 
     setBrandId('');
     setCategoryIds([]);
@@ -160,7 +207,7 @@ const Product = () => {
 
           active,
           featured,
-          sortOrder,
+          sortOrder: sortOrderField,
 
           brandId: brandId || undefined,
           categoryIds,
@@ -179,7 +226,7 @@ const Product = () => {
 
           active,
           featured,
-          sortOrder,
+          sortOrder: sortOrderField,
 
           brandId: brandId || undefined,
 
@@ -207,7 +254,7 @@ const Product = () => {
   // EDIT PRODUCT
   // ===============================
 
-  const handleEditProduct = (product: ProductItem) => {
+  const handleEditProduct = (product: Product) => {
     setSelectedProduct(product);
 
     setProductType(product.hasVariants ? 'variable' : 'simple');
@@ -226,13 +273,12 @@ const Product = () => {
 
     setActive(product.active);
     setFeatured(product.featured);
-    setSortOrder(product.sortOrder);
+    setSortOrderField(product.sortOrder);
 
     setBrandId(product.brandId ?? '');
 
     setCategoryIds(product.categories.map((category) => category.id));
 
-    // IMPORTANT FOR VARIABLE PRODUCT
     if (product.hasVariants) {
       const existingVariants =
         product.variants?.map((variant) => ({
@@ -292,7 +338,6 @@ const Product = () => {
 
     try {
       if (productType === 'variable') {
-        // 1. Update product-level fields only (backend ignores variants here)
         await updateVariableProduct({
           id: selectedProduct.id,
 
@@ -308,7 +353,7 @@ const Product = () => {
             active,
             featured,
 
-            sortOrder,
+            sortOrder: sortOrderField,
 
             brandId: brandId || undefined,
 
@@ -316,7 +361,6 @@ const Product = () => {
           },
         }).unwrap();
 
-        // 2. Reconcile variants against what existed before
         const currentIds = variants
           .map((v) => v.id)
           .filter((id): id is string => Boolean(id));
@@ -325,12 +369,10 @@ const Product = () => {
           (id) => !currentIds.includes(id),
         );
 
-        // Delete variants that were removed from the form
         for (const id of removedIds) {
           await deleteVariant(id).unwrap();
         }
 
-        // Update existing / add new variants
         for (const variant of variants) {
           const payload = {
             sku: variant.sku,
@@ -374,7 +416,7 @@ const Product = () => {
             active,
             featured,
 
-            sortOrder,
+            sortOrder: sortOrderField,
 
             brandId: brandId || undefined,
 
@@ -445,22 +487,96 @@ const Product = () => {
         </button>
       </div>
 
+      {/* ================= FILTER BAR ================= */}
+      <div className="flex flex-wrap items-center gap-3 rounded-lg border bg-white p-4">
+        <form onSubmit={handleSearchSubmit} className="flex gap-2">
+          <input
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            placeholder="Search by name or SKU"
+            className="rounded border p-2"
+          />
+          <button
+            type="submit"
+            className="rounded border bg-gray-100 px-3 py-2 text-sm"
+          >
+            Search
+          </button>
+        </form>
+
+        <select
+          value={filterBrandId}
+          onChange={(e) => {
+            setFilterBrandId(e.target.value);
+            setPage(1);
+          }}
+          className="rounded border p-2 text-sm"
+        >
+          <option value="">All Brands</option>
+          {(brandsData?.data.items ?? []).map((brand) => (
+            <option key={brand.id} value={brand.id}>
+              {brand.name}
+            </option>
+          ))}
+        </select>
+
+        <select
+          value={filterCategoryId}
+          onChange={(e) => {
+            setFilterCategoryId(e.target.value);
+            setPage(1);
+          }}
+          className="rounded border p-2 text-sm"
+        >
+          <option value="">All Categories</option>
+          {(categoriesData?.data.items ?? []).map((category) => (
+            <option key={category.id} value={category.id}>
+              {category.name}
+            </option>
+          ))}
+        </select>
+
+        <select
+          value={filterStatus}
+          onChange={(e) => {
+            setFilterStatus(e.target.value as '' | 'true' | 'false');
+            setPage(1);
+          }}
+          className="rounded border p-2 text-sm"
+        >
+          <option value="">All Status</option>
+          <option value="true">Active</option>
+          <option value="false">Inactive</option>
+        </select>
+
+        <select
+          value={`${sortBy}:${sortOrder}`}
+          onChange={(e) => handleSortChange(e.target.value)}
+          className="rounded border p-2 text-sm"
+        >
+          <option value="createdAt:desc">Newest First</option>
+          <option value="createdAt:asc">Oldest First</option>
+          <option value="name:asc">Name A-Z</option>
+          <option value="name:desc">Name Z-A</option>
+          <option value="price:asc">Price Low-High</option>
+          <option value="price:desc">Price High-Low</option>
+          <option value="stock:asc">Stock Low-High</option>
+          <option value="stock:desc">Stock High-Low</option>
+        </select>
+      </div>
+
       <div className="overflow-x-auto rounded-lg border bg-white">
         <table className="min-w-full">
           <thead className="bg-gray-100">
             <tr>
+              <th className="px-4 py-3 text-left">Image</th>
               <th className="px-4 py-3 text-left">Name</th>
-
               <th className="px-4 py-3 text-left">SKU</th>
-
               <th className="px-4 py-3 text-left">Brand</th>
-
+              <th className="px-4 py-3 text-left">Categories</th>
               <th className="px-4 py-3 text-left">Price</th>
-
               <th className="px-4 py-3 text-left">Stock</th>
-
               <th className="px-4 py-3 text-left">Status</th>
-
               <th className="px-4 py-3 text-left">Actions</th>
             </tr>
           </thead>
@@ -468,6 +584,23 @@ const Product = () => {
           <tbody>
             {data?.data.items.map((product) => (
               <tr key={product.id} className="border-t">
+                <td className="px-4 py-3">
+                  {product.thumbnail?.media ? (
+                    <img
+                      src={getMediaUrl(
+                        product.thumbnail.media.thumbnail ??
+                          product.thumbnail.media.publicUrl,
+                      )}
+                      alt={product.name}
+                      className="h-12 w-12 rounded object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-12 w-12 items-center justify-center rounded bg-gray-100 text-xs text-gray-400">
+                      No image
+                    </div>
+                  )}
+                </td>
+
                 <td className="px-4 py-3">{product.name}</td>
 
                 <td className="px-4 py-3">
@@ -477,6 +610,12 @@ const Product = () => {
                 </td>
 
                 <td className="px-4 py-3">{product.brand?.name ?? '-'}</td>
+
+                <td className="px-4 py-3">
+                  {product.categories.length > 0
+                    ? product.categories.map((c) => c.name).join(', ')
+                    : '-'}
+                </td>
 
                 <td className="px-4 py-3">
                   {product.hasVariants
@@ -516,9 +655,44 @@ const Product = () => {
                 </td>
               </tr>
             ))}
+
+            {data?.data.items.length === 0 && (
+              <tr>
+                <td colSpan={9} className="px-4 py-8 text-center text-gray-500">
+                  No products found.
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
+
+      {/* ================= PAGINATION ================= */}
+      {data && data.data.total > PAGE_SIZE && (
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-gray-500">
+            Page {data.data.page} of {totalPages} — {data.data.total} products
+          </p>
+
+          <div className="flex gap-2">
+            <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page <= 1}
+              className="rounded border px-3 py-1 text-sm disabled:opacity-50"
+            >
+              Previous
+            </button>
+
+            <button
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page >= totalPages}
+              className="rounded border px-3 py-1 text-sm disabled:opacity-50"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
 
       <ProductModal
         open={openModal}
@@ -545,8 +719,8 @@ const Product = () => {
         setActive={setActive}
         featured={featured}
         setFeatured={setFeatured}
-        sortOrder={sortOrder}
-        setSortOrder={setSortOrder}
+        sortOrder={sortOrderField}
+        setSortOrder={setSortOrderField}
         brandId={brandId}
         setBrandId={setBrandId}
         categoryIds={categoryIds}
