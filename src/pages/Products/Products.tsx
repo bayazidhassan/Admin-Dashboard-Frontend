@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import toast from 'react-hot-toast';
+import ConfirmModal from '../../components/common/ConfirmModal';
 import ProductModal from '../../components/product/ProductModal';
 import { getMediaUrl } from '../../lib/media';
 
@@ -6,7 +8,8 @@ import { useGetAttributesQuery } from '../../features/attribute/attributeApi';
 import { useGetBrandsQuery } from '../../features/brand/brandApi';
 import { useGetCategoriesQuery } from '../../features/category/categoryApi';
 
-import { toast } from 'react-hot-toast';
+import ErrorState from '../../components/common/ErrorState';
+import LoadingState, { Spinner } from '../../components/common/LoadingState';
 import {
   useAddVariantMutation,
   useCreateProductMutation,
@@ -22,7 +25,7 @@ import {
 } from '../../features/product/productApi';
 
 type VariantForm = {
-  id?: string; // present for existing variants, absent for new ones
+  id?: string;
   sku: string;
   price: number;
   salePrice: number;
@@ -43,9 +46,6 @@ const emptyVariant: VariantForm = {
 const PAGE_SIZE = 10;
 
 const Product = () => {
-  // ===============================
-  // LIST CONTROLS
-  // ===============================
   const [page, setPage] = useState(1);
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
@@ -87,9 +87,6 @@ const Product = () => {
 
   const totalPages = data ? Math.ceil(data.data.total / PAGE_SIZE) : 1;
 
-  // ===============================
-  // MODAL / FORM STATE
-  // ===============================
   const [openModal, setOpenModal] = useState(false);
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
@@ -115,6 +112,9 @@ const Product = () => {
   );
   const [isEdit, setIsEdit] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [productToDelete, setProductToDelete] = useState<ProductItem | null>(
+    null,
+  );
   const [formError, setFormError] = useState<string | null>(null);
 
   const { data: brandsData } = useGetBrandsQuery();
@@ -127,7 +127,7 @@ const Product = () => {
   const [updateProduct, { isLoading: isUpdating }] = useUpdateProductMutation();
   const [updateVariableProduct, { isLoading: isUpdatingVariable }] =
     useUpdateVariableProductMutation();
-  const [deleteProduct, { isLoading: isDeleting }] = useDeleteProductMutation();
+  const [deleteProduct] = useDeleteProductMutation();
 
   const [addVariant, { isLoading: isAddingVariant }] = useAddVariantMutation();
   const [updateVariant, { isLoading: isUpdatingVariant }] =
@@ -136,53 +136,55 @@ const Product = () => {
 
   const resetProductForm = () => {
     setProductType('simple');
-
     setName('');
     setSlug('');
     setSku('');
-
     setShortDescription('');
     setLongDescription('');
-
     setPrice(0);
     setSalePrice(0);
     setStock(0);
-
     setWeight(0);
-
     setActive(true);
     setFeatured(false);
     setSortOrderField(0);
-
     setBrandId('');
     setCategoryIds([]);
-
     setVariants([{ ...emptyVariant }]);
     setOriginalVariantIds([]);
     setFormError(null);
   };
 
-  const handleCreateProduct = async () => {
-    setFormError(null);
-
+  const validateForm = () => {
     if (productType === 'variable' && variants.length === 0) {
-      setFormError('A variable product must have at least one variant.');
-      return;
+      const msg = 'A variable product must have at least one variant.';
+      setFormError(msg);
+      toast.error(msg);
+      return false;
     }
 
     for (const variant of variants) {
       if (variant.salePrice > 0 && variant.salePrice > variant.price) {
-        setFormError(
-          `Sale price cannot be greater than price for SKU: ${variant.sku || '(empty)'}`,
-        );
-        return;
+        const msg = `Sale price cannot be greater than price for SKU: ${variant.sku || '(empty)'}`;
+        setFormError(msg);
+        toast.error(msg);
+        return false;
       }
     }
 
     if (salePrice > 0 && salePrice > price) {
-      setFormError('Sale price cannot be greater than price.');
-      return;
+      const msg = 'Sale price cannot be greater than price.';
+      setFormError(msg);
+      toast.error(msg);
+      return false;
     }
+
+    return true;
+  };
+
+  const handleCreateProduct = async () => {
+    setFormError(null);
+    if (!validateForm()) return;
 
     try {
       if (productType === 'simple') {
@@ -190,20 +192,15 @@ const Product = () => {
           name,
           slug,
           sku,
-
           shortDescription,
           longDescription,
-
           price,
           salePrice,
           stock,
-
           weight,
-
           active,
           featured,
           sortOrder: sortOrderField,
-
           brandId: brandId || undefined,
           categoryIds,
         }).unwrap();
@@ -211,65 +208,49 @@ const Product = () => {
         await createVariableProduct({
           name,
           slug,
-
           hasVariants: true,
-
           shortDescription,
           longDescription,
-
           weight,
-
           active,
           featured,
           sortOrder: sortOrderField,
-
           brandId: brandId || undefined,
-
           categoryIds,
-
           variants,
         }).unwrap();
       }
 
-      toast.success('Product created successfully!');
-
+      toast.success('Product created');
       setOpenModal(false);
-
       resetProductForm();
-
       setSelectedProduct(null);
       setIsEdit(false);
     } catch (error) {
-      console.log(error);
-      setFormError(
-        'Something went wrong while saving. Check your input and try again.',
-      );
+      console.error(error);
+      const msg =
+        'Something went wrong while saving. Check your input and try again.';
+      setFormError(msg);
+      toast.error(msg);
     }
   };
 
   const handleEditProduct = (product: ProductItem) => {
     setSelectedProduct(product);
-
     setProductType(product.hasVariants ? 'variable' : 'simple');
-
     setName(product.name);
     setSlug(product.slug);
     setSku(product.sku ?? '');
-
     setShortDescription(product.shortDescription ?? '');
     setLongDescription(product.longDescription ?? '');
-
     setPrice(product.price ?? 0);
     setSalePrice(product.salePrice ?? 0);
     setStock(product.stock ?? 0);
     setWeight(product.weight ?? 0);
-
     setActive(product.active);
     setFeatured(product.featured);
     setSortOrderField(product.sortOrder);
-
     setBrandId(product.brandId ?? '');
-
     setCategoryIds(product.categories.map((category) => category.id));
 
     if (product.hasVariants) {
@@ -305,47 +286,22 @@ const Product = () => {
     if (!selectedProduct) return;
 
     setFormError(null);
-
-    if (productType === 'variable' && variants.length === 0) {
-      setFormError('A variable product must have at least one variant.');
-      return;
-    }
-
-    for (const variant of variants) {
-      if (variant.salePrice > 0 && variant.salePrice > variant.price) {
-        setFormError(
-          `Sale price cannot be greater than price for SKU: ${variant.sku || '(empty)'}`,
-        );
-        return;
-      }
-    }
-
-    if (salePrice > 0 && salePrice > price) {
-      setFormError('Sale price cannot be greater than price.');
-      return;
-    }
+    if (!validateForm()) return;
 
     try {
       if (productType === 'variable') {
         await updateVariableProduct({
           id: selectedProduct.id,
-
           body: {
             name,
             slug,
-
             shortDescription,
             longDescription,
-
             weight,
-
             active,
             featured,
-
             sortOrder: sortOrderField,
-
             brandId: brandId || undefined,
-
             categoryIds,
           },
         }).unwrap();
@@ -353,7 +309,6 @@ const Product = () => {
         const currentIds = variants
           .map((v) => v.id)
           .filter((id): id is string => Boolean(id));
-
         const removedIds = originalVariantIds.filter(
           (id) => !currentIds.includes(id),
         );
@@ -387,102 +342,99 @@ const Product = () => {
       } else {
         await updateProduct({
           id: selectedProduct.id,
-
           body: {
             name,
             slug,
             sku,
-
             shortDescription,
             longDescription,
-
             price,
             salePrice,
             stock,
-
             weight,
-
             active,
             featured,
-
             sortOrder: sortOrderField,
-
             brandId: brandId || undefined,
-
             categoryIds,
           },
         }).unwrap();
       }
 
+      toast.success('Product updated');
       setOpenModal(false);
-
       resetProductForm();
-
       setSelectedProduct(null);
-
       setIsEdit(false);
     } catch (error) {
-      console.log(error);
-      setFormError(
-        'Something went wrong while saving. Check your input and try again.',
-      );
+      console.error(error);
+      const msg =
+        'Something went wrong while saving. Check your input and try again.';
+      setFormError(msg);
+      toast.error(msg);
     }
   };
 
-  const handleDeleteProduct = async (id: string) => {
-    const confirmDelete = window.confirm(
-      'Are you sure you want to delete this product?',
-    );
-
-    if (!confirmDelete) return;
+  const handleConfirmDelete = async () => {
+    if (!productToDelete) return;
 
     try {
-      setDeletingId(id);
-
-      await deleteProduct(id).unwrap();
+      setDeletingId(productToDelete.id);
+      await deleteProduct(productToDelete.id).unwrap();
+      toast.success('Product deleted');
     } catch (error) {
-      console.log(error);
+      console.error(error);
+      toast.error('Failed to delete product');
     } finally {
       setDeletingId(null);
+      setProductToDelete(null);
     }
   };
 
-  if (isLoading) return <h2>Loading...</h2>;
+  if (isLoading) {
+    return <LoadingState />;
+  }
 
-  if (error) return <h2>Something went wrong.</h2>;
+  if (error) {
+    return <ErrorState error={error} />;
+  }
+
+  const products = data?.data.items ?? [];
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Products</h1>
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Products</h1>
+          <p className="mt-1 text-sm text-slate-500">
+            Manage simple and variable products, with variants and media.
+          </p>
+        </div>
 
         <button
           onClick={() => {
             resetProductForm();
-
             setSelectedProduct(null);
-
             setIsEdit(false);
-
             setOpenModal(true);
           }}
-          className="cursor-pointer rounded bg-black px-4 py-2 text-white"
+          className="cursor-pointer rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-700"
         >
-          Create Product
+          Create product
         </button>
       </div>
 
-      <div className="flex flex-wrap items-center gap-3 rounded-lg border bg-white p-4">
+      <div className="flex flex-wrap items-center gap-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
         <form onSubmit={handleSearchSubmit} className="flex gap-2">
           <input
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             placeholder="Search by name or SKU"
-            className="rounded border p-2"
+            className="rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
           />
           <button
             type="submit"
-            className="rounded border bg-gray-100 px-3 py-2 text-sm"
+            className="cursor-pointer rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
           >
             Search
           </button>
@@ -494,9 +446,9 @@ const Product = () => {
             setFilterBrandId(e.target.value);
             setPage(1);
           }}
-          className="rounded border p-2 text-sm"
+          className="cursor-pointer rounded-md border border-slate-300 px-3 py-2 text-sm"
         >
-          <option value="">All Brands</option>
+          <option value="">All brands</option>
           {(brandsData?.data.items ?? []).map((brand) => (
             <option key={brand.id} value={brand.id}>
               {brand.name}
@@ -510,9 +462,9 @@ const Product = () => {
             setFilterCategoryId(e.target.value);
             setPage(1);
           }}
-          className="rounded border p-2 text-sm"
+          className="cursor-pointer rounded-md border border-slate-300 px-3 py-2 text-sm"
         >
-          <option value="">All Categories</option>
+          <option value="">All categories</option>
           {(categoriesData?.data.items ?? []).map((category) => (
             <option key={category.id} value={category.id}>
               {category.name}
@@ -526,9 +478,9 @@ const Product = () => {
             setFilterStatus(e.target.value as '' | 'true' | 'false');
             setPage(1);
           }}
-          className="rounded border p-2 text-sm"
+          className="cursor-pointer rounded-md border border-slate-300 px-3 py-2 text-sm"
         >
-          <option value="">All Status</option>
+          <option value="">All status</option>
           <option value="true">Active</option>
           <option value="false">Inactive</option>
         </select>
@@ -536,72 +488,79 @@ const Product = () => {
         <select
           value={`${sortBy}:${sortOrder}`}
           onChange={(e) => handleSortChange(e.target.value)}
-          className="rounded border p-2 text-sm"
+          className="cursor-pointer rounded-md border border-slate-300 px-3 py-2 text-sm"
         >
-          <option value="createdAt:desc">Newest First</option>
-          <option value="createdAt:asc">Oldest First</option>
+          <option value="createdAt:desc">Newest first</option>
+          <option value="createdAt:asc">Oldest first</option>
           <option value="name:asc">Name A-Z</option>
           <option value="name:desc">Name Z-A</option>
-          <option value="price:asc">Price Low-High</option>
-          <option value="price:desc">Price High-Low</option>
-          <option value="stock:asc">Stock Low-High</option>
-          <option value="stock:desc">Stock High-Low</option>
+          <option value="price:asc">Price low-high</option>
+          <option value="price:desc">Price high-low</option>
+          <option value="stock:asc">Stock low-high</option>
+          <option value="stock:desc">Stock high-low</option>
         </select>
       </div>
 
-      <div className="overflow-x-auto rounded-lg border bg-white">
-        <table className="min-w-full">
-          <thead className="bg-gray-100">
-            <tr>
-              <th className="px-4 py-3 text-left">Image</th>
-              <th className="px-4 py-3 text-left">Name</th>
-              <th className="px-4 py-3 text-left">SKU</th>
-              <th className="px-4 py-3 text-left">Brand</th>
-              <th className="px-4 py-3 text-left">Categories</th>
-              <th className="px-4 py-3 text-left">Price</th>
-              <th className="px-4 py-3 text-left">Stock</th>
-              <th className="px-4 py-3 text-left">Status</th>
-              <th className="px-4 py-3 text-left">Actions</th>
+      <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+        <table className="w-full text-sm">
+          <thead className="bg-slate-50">
+            <tr className="border-b border-slate-200 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase">
+              <th className="px-4 py-3">Product</th>
+              <th className="px-4 py-3">Brand</th>
+              <th className="px-4 py-3">Categories</th>
+              <th className="px-4 py-3">Price</th>
+              <th className="px-4 py-3">Stock</th>
+              <th className="px-4 py-3">Status</th>
+              <th className="px-4 py-3 text-right">Actions</th>
             </tr>
           </thead>
 
-          <tbody>
-            {data?.data.items.map((product) => (
-              <tr key={product.id} className="border-t">
+          <tbody className="divide-y divide-slate-100">
+            {products.map((product) => (
+              <tr
+                key={product.id}
+                className="transition-colors hover:bg-slate-50"
+              >
                 <td className="px-4 py-3">
-                  {product.thumbnail?.media ? (
-                    <img
-                      src={getMediaUrl(
-                        product.thumbnail.media.thumbnail ??
-                          product.thumbnail.media.publicUrl,
-                      )}
-                      alt={product.name}
-                      className="h-12 w-12 rounded object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-12 w-12 items-center justify-center rounded bg-gray-100 text-xs text-gray-400">
-                      No image
+                  <div className="flex items-center gap-3">
+                    {product.thumbnail?.media ? (
+                      <img
+                        src={getMediaUrl(
+                          product.thumbnail.media.thumbnail ??
+                            product.thumbnail.media.publicUrl,
+                        )}
+                        alt={product.name}
+                        className="h-10 w-10 shrink-0 rounded object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded bg-slate-100 text-xs text-slate-400">
+                        No image
+                      </div>
+                    )}
+                    <div>
+                      <p className="font-medium text-slate-900">
+                        {product.name}
+                      </p>
+                      <p className="text-xs text-slate-400">
+                        {product.hasVariants
+                          ? `${product._count.variants} variants`
+                          : product.sku}
+                      </p>
                     </div>
-                  )}
+                  </div>
                 </td>
 
-                <td className="px-4 py-3">{product.name}</td>
-
-                <td className="px-4 py-3">
-                  {product.hasVariants
-                    ? `${product._count.variants} Variants`
-                    : product.sku}
+                <td className="px-4 py-3 text-slate-500">
+                  {product.brand?.name ?? '—'}
                 </td>
 
-                <td className="px-4 py-3">{product.brand?.name ?? '-'}</td>
-
-                <td className="px-4 py-3">
+                <td className="px-4 py-3 text-slate-500">
                   {product.categories.length > 0
                     ? product.categories.map((c) => c.name).join(', ')
-                    : '-'}
+                    : '—'}
                 </td>
 
-                <td className="px-4 py-3">
+                <td className="px-4 py-3 font-medium text-slate-900">
                   {product.hasVariants
                     ? product.minPrice === product.maxPrice
                       ? `$${product.minPrice}`
@@ -609,40 +568,54 @@ const Product = () => {
                     : `$${product.price}`}
                 </td>
 
-                <td className="px-4 py-3">
+                <td className="px-4 py-3 text-slate-500">
                   {product.hasVariants
-                    ? `${product._count.variants} Variants`
+                    ? `${product._count.variants} variants`
                     : product.stock}
                 </td>
 
                 <td className="px-4 py-3">
-                  {product.active ? 'Active' : 'Inactive'}
+                  <span
+                    className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                      product.active
+                        ? 'bg-emerald-50 text-emerald-700'
+                        : 'bg-slate-100 text-slate-500'
+                    }`}
+                  >
+                    {product.active ? 'Active' : 'Inactive'}
+                  </span>
                 </td>
 
-                <td className="space-x-2 px-4 py-3">
-                  <button
-                    onClick={() => handleEditProduct(product)}
-                    className="cursor-pointer rounded bg-blue-500 px-3 py-1 text-white"
-                  >
-                    Edit
-                  </button>
+                <td className="px-4 py-3">
+                  <div className="flex justify-end gap-2">
+                    <button
+                      onClick={() => handleEditProduct(product)}
+                      className="cursor-pointer rounded-md border border-slate-300 px-3 py-1 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-100"
+                    >
+                      Edit
+                    </button>
 
-                  <button
-                    onClick={() => handleDeleteProduct(product.id)}
-                    disabled={isDeleting && deletingId === product.id}
-                    className="cursor-pointer rounded bg-red-500 px-3 py-1 text-white disabled:opacity-50"
-                  >
-                    {isDeleting && deletingId === product.id
-                      ? 'Deleting...'
-                      : 'Delete'}
-                  </button>
+                    <button
+                      onClick={() => setProductToDelete(product)}
+                      disabled={deletingId === product.id}
+                      className="inline-flex cursor-pointer items-center gap-1 rounded-md border border-red-200 px-3 py-1 text-xs font-medium text-red-600 transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {deletingId === product.id && (
+                        <Spinner className="h-3 w-3" />
+                      )}
+                      {deletingId === product.id ? 'Deleting...' : 'Delete'}
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
 
-            {data?.data.items.length === 0 && (
+            {products.length === 0 && (
               <tr>
-                <td colSpan={9} className="px-4 py-8 text-center text-gray-500">
+                <td
+                  colSpan={7}
+                  className="px-4 py-10 text-center text-sm text-slate-400"
+                >
                   No products found.
                 </td>
               </tr>
@@ -653,7 +626,7 @@ const Product = () => {
 
       {data && data.data.total > PAGE_SIZE && (
         <div className="flex items-center justify-between">
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-slate-500">
             Page {data.data.page} of {totalPages} — {data.data.total} products
           </p>
 
@@ -661,7 +634,7 @@ const Product = () => {
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page <= 1}
-              className="rounded border px-3 py-1 text-sm disabled:opacity-50"
+              className="cursor-pointer rounded-md border border-slate-300 px-3 py-1 text-sm disabled:cursor-not-allowed disabled:opacity-50"
             >
               Previous
             </button>
@@ -669,7 +642,7 @@ const Product = () => {
             <button
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={page >= totalPages}
-              className="rounded border px-3 py-1 text-sm disabled:opacity-50"
+              className="cursor-pointer rounded-md border border-slate-300 px-3 py-1 text-sm disabled:cursor-not-allowed disabled:opacity-50"
             >
               Next
             </button>
@@ -727,14 +700,20 @@ const Product = () => {
         isEdit={isEdit}
         onClose={() => {
           setOpenModal(false);
-
           resetProductForm();
-
           setSelectedProduct(null);
-
           setIsEdit(false);
         }}
         onSave={isEdit ? handleUpdateProduct : handleCreateProduct}
+      />
+
+      <ConfirmModal
+        open={productToDelete !== null}
+        title={`Delete "${productToDelete?.name}"?`}
+        description="This will permanently remove the product and its variants. This cannot be undone."
+        isLoading={deletingId === productToDelete?.id}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setProductToDelete(null)}
       />
     </div>
   );

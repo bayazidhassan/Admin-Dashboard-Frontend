@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import toast from 'react-hot-toast';
 import type { AttributeValue } from '../../features/attribute/attributeApi';
 import { useGetMediaQuery } from '../../features/media/mediaApi';
 import {
@@ -6,18 +7,39 @@ import {
   useDetachAttributeValueMediaMutation,
 } from '../../features/product/productApi';
 import { getMediaUrl } from '../../lib/media';
+import ConfirmModal from '../common/ConfirmModal';
 
 interface Props {
   attributeValue: AttributeValue;
 }
 
+const Spinner = ({ className = 'h-3 w-3' }: { className?: string }) => (
+  <svg className={`${className} animate-spin`} viewBox="0 0 24 24" fill="none">
+    <circle
+      className="opacity-25"
+      cx="12"
+      cy="12"
+      r="10"
+      stroke="currentColor"
+      strokeWidth="4"
+    />
+    <path
+      className="opacity-75"
+      fill="currentColor"
+      d="M4 12a8 8 0 0 1 8-8V0C5.4 0 0 5.4 0 12h4Z"
+    />
+  </svg>
+);
+
 const AttributeValueMediaManager = ({ attributeValue }: Props) => {
   const { data: mediaLibrary } = useGetMediaQuery();
   const [selectedMediaId, setSelectedMediaId] = useState('');
+  const [mediaIdToRemove, setMediaIdToRemove] = useState<string | null>(null);
 
   const [attachMedia, { isLoading: isAttaching }] =
     useAttachAttributeValueMediaMutation();
-  const [detachMedia] = useDetachAttributeValueMediaMutation();
+  const [detachMedia, { isLoading: isDetaching }] =
+    useDetachAttributeValueMediaMutation();
 
   const attachments = attributeValue.mediaAttachments ?? [];
 
@@ -39,32 +61,40 @@ const AttributeValueMediaManager = ({ attributeValue }: Props) => {
         },
       }).unwrap();
 
+      toast.success('Image attached');
       setSelectedMediaId('');
     } catch (error) {
-      console.log(error);
+      console.error(error);
+      toast.error('Failed to attach image');
     }
   };
 
-  const handleDetach = async (mediaId: string) => {
-    const confirmDelete = window.confirm('Remove this image?');
-    if (!confirmDelete) return;
+  const handleConfirmDetach = async () => {
+    if (!mediaIdToRemove) return;
 
     try {
-      await detachMedia({ valueId: attributeValue.id, mediaId }).unwrap();
+      await detachMedia({
+        valueId: attributeValue.id,
+        mediaId: mediaIdToRemove,
+      }).unwrap();
+      toast.success('Image removed');
     } catch (error) {
-      console.log(error);
+      console.error(error);
+      toast.error('Failed to remove image');
+    } finally {
+      setMediaIdToRemove(null);
     }
   };
 
   return (
-    <div className="mt-2 rounded border border-dashed p-2">
-      <div className="mb-2 flex gap-2">
+    <div className="w-52 rounded-md border border-dashed border-slate-300 p-2">
+      <div className="mb-2 flex gap-1.5">
         <select
           value={selectedMediaId}
           onChange={(e) => setSelectedMediaId(e.target.value)}
-          className="flex-1 rounded border p-1 text-xs"
+          className="min-w-0 flex-1 rounded border border-slate-300 px-1.5 py-1 text-xs focus:border-indigo-500 focus:outline-none"
         >
-          <option value="">Select an image</option>
+          <option value="">Select image</option>
           {availableMedia.map((m: { id: string; fileName: string }) => (
             <option key={m.id} value={m.id}>
               {m.fileName}
@@ -76,16 +106,17 @@ const AttributeValueMediaManager = ({ attributeValue }: Props) => {
           type="button"
           onClick={handleAttach}
           disabled={!selectedMediaId || isAttaching}
-          className="rounded bg-blue-600 px-2 py-1 text-xs text-white disabled:opacity-50"
+          className="inline-flex shrink-0 cursor-pointer items-center gap-1 rounded bg-indigo-600 px-2 py-1 text-xs text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          Attach
+          {isAttaching && <Spinner />}
+          Add
         </button>
       </div>
 
       {attachments.length > 0 && (
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-1.5">
           {attachments.map((attachment) => (
-            <div key={attachment.id} className="relative">
+            <div key={attachment.id} className="group relative">
               <img
                 src={getMediaUrl(
                   attachment.media.thumbnail ?? attachment.media.publicUrl,
@@ -95,22 +126,34 @@ const AttributeValueMediaManager = ({ attributeValue }: Props) => {
               />
 
               {attachment.isThumbnail && (
-                <span className="absolute top-0 left-0 rounded bg-green-600 px-1 text-[9px] text-white">
+                <span className="absolute top-0 left-0 rounded-br bg-emerald-600 px-1 text-[9px] font-medium text-white">
                   Thumb
                 </span>
               )}
 
               <button
                 type="button"
-                onClick={() => handleDetach(attachment.mediaId)}
-                className="absolute right-0 bottom-0 rounded bg-red-500 px-1 text-[9px] text-white"
+                onClick={() => setMediaIdToRemove(attachment.mediaId)}
+                disabled={isDetaching && mediaIdToRemove === attachment.mediaId}
+                className="absolute inset-0 flex items-center justify-center rounded bg-black/60 text-[10px] font-medium text-white opacity-0 transition-opacity group-hover:opacity-100"
               >
-                ✕
+                Remove
               </button>
             </div>
           ))}
         </div>
       )}
+
+      <ConfirmModal
+        open={mediaIdToRemove !== null}
+        title="Remove this image?"
+        description="This will detach the image from this attribute value."
+        confirmLabel="Remove"
+        loadingLabel="Removing..."
+        isLoading={isDetaching}
+        onConfirm={handleConfirmDetach}
+        onCancel={() => setMediaIdToRemove(null)}
+      />
     </div>
   );
 };

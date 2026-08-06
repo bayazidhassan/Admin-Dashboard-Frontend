@@ -1,107 +1,152 @@
 interface Props {
   open: boolean;
-
   isEdit: boolean;
-
   name: string;
   setName: React.Dispatch<React.SetStateAction<string>>;
-
   slug: string;
   setSlug: React.Dispatch<React.SetStateAction<string>>;
-
   logo: string;
   setLogo: React.Dispatch<React.SetStateAction<string>>;
-
   description: string;
   setDescription: React.Dispatch<React.SetStateAction<string>>;
-
   status: boolean;
   setStatus: React.Dispatch<React.SetStateAction<boolean>>;
-
   isLoading: boolean;
-
   onClose: () => void;
   onSave: () => void;
 }
 
+const Spinner = ({ className = 'h-4 w-4' }: { className?: string }) => (
+  <svg className={`${className} animate-spin`} viewBox="0 0 24 24" fill="none">
+    <circle
+      className="opacity-25"
+      cx="12"
+      cy="12"
+      r="10"
+      stroke="currentColor"
+      strokeWidth="4"
+    />
+    <path
+      className="opacity-75"
+      fill="currentColor"
+      d="M4 12a8 8 0 0 1 8-8V0C5.4 0 0 5.4 0 12h4Z"
+    />
+  </svg>
+);
+
+const inputClass =
+  'w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none';
+const labelClass = 'mb-1 block text-xs font-medium text-slate-500';
+
 const BrandModal = ({
   open,
-
   isEdit,
-
   name,
   setName,
-
   slug,
   setSlug,
-
   logo,
   setLogo,
-
   description,
   setDescription,
-
   status,
   setStatus,
-
   isLoading,
-
   onClose,
   onSave,
 }: Props) => {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black/50">
-      <div className="w-[600px] rounded bg-white p-6">
-        <h2 className="mb-6 text-2xl font-bold">
-          {isEdit ? 'Edit Brand' : 'Create Brand'}
-        </h2>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="w-full max-w-lg overflow-hidden rounded-lg bg-white shadow-lg">
+        <div className="border-b border-slate-200 px-6 py-4">
+          <h2 className="text-lg font-semibold text-slate-900">
+            {isEdit ? 'Edit brand' : 'Create brand'}
+          </h2>
+        </div>
 
-        <input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="Name"
-          className="mb-4 w-full rounded border p-2"
-        />
+        <div className="space-y-4 px-6 py-5">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={labelClass}>Name</label>
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="e.g. Acme"
+                className={inputClass}
+              />
+            </div>
 
-        <input
-          value={slug}
-          readOnly={isEdit}
-          onChange={(e) => setSlug(e.target.value)}
-          placeholder="Slug"
-          className={`mb-4 w-full rounded border p-2 ${
-            isEdit ? 'cursor-not-allowed bg-gray-100' : ''
-          }`}
-        />
+            <div>
+              <label className={labelClass}>Slug</label>
+              <input
+                value={slug}
+                readOnly={isEdit}
+                onChange={(e) => setSlug(e.target.value)}
+                placeholder="acme"
+                className={`${inputClass} ${
+                  isEdit
+                    ? 'cursor-not-allowed border-slate-200 bg-slate-50 text-slate-500'
+                    : ''
+                }`}
+              />
+            </div>
+          </div>
 
-        <input
-          value={logo}
-          onChange={(e) => setLogo(e.target.value)}
-          placeholder="Logo URL"
-          className="mb-4 w-full rounded border p-2"
-        />
+          <div>
+            <label className={labelClass}>Logo URL</label>
+            <div className="flex items-center gap-3">
+              {logo ? (
+                <img
+                  src={logo}
+                  alt="Logo preview"
+                  className="h-10 w-10 shrink-0 rounded object-cover"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = 'none';
+                  }}
+                />
+              ) : (
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded bg-slate-100 text-xs text-slate-400">
+                  —
+                </div>
+              )}
 
-        <textarea
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder="Description"
-          className="mb-4 w-full rounded border p-2"
-        />
+              <input
+                value={logo}
+                onChange={(e) => setLogo(e.target.value)}
+                placeholder="https://..."
+                className={inputClass}
+              />
+            </div>
+          </div>
 
-        <label className="mb-6 flex items-center gap-2">
-          <input
-            type="checkbox"
-            checked={status}
-            onChange={(e) => setStatus(e.target.checked)}
-          />
-          Active
-        </label>
+          <div>
+            <label className={labelClass}>Description</label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Optional description"
+              rows={3}
+              className={`${inputClass} resize-none`}
+            />
+          </div>
 
-        <div className="flex justify-end gap-3">
+          <label className="flex w-fit cursor-pointer items-center gap-2 rounded-md border border-slate-200 px-3 py-2 text-sm text-slate-700">
+            <input
+              type="checkbox"
+              checked={status}
+              onChange={(e) => setStatus(e.target.checked)}
+              className="accent-indigo-600"
+            />
+            Active
+          </label>
+        </div>
+
+        <div className="flex justify-end gap-3 border-t border-slate-200 px-6 py-4">
           <button
             onClick={onClose}
-            className="cursor-pointer rounded border px-4 py-2"
+            className="cursor-pointer rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
           >
             Cancel
           </button>
@@ -109,8 +154,9 @@ const BrandModal = ({
           <button
             disabled={isLoading}
             onClick={onSave}
-            className="cursor-pointer rounded bg-blue-600 px-4 py-2 text-white disabled:opacity-50"
+            className="inline-flex cursor-pointer items-center gap-2 rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
           >
+            {isLoading && <Spinner />}
             {isLoading ? 'Saving...' : 'Save'}
           </button>
         </div>
